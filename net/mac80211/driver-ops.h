@@ -1693,6 +1693,19 @@ static inline int drv_net_fill_forward_path(struct ieee80211_local *local,
 	return ret;
 }
 
+static inline int drv_net_fill_receive_path(struct ieee80211_local *local,
+					    struct net_device_path_ctx *ctx,
+					    struct net_device_path *path)
+{
+	int ret = -EOPNOTSUPP;
+
+	if (local->ops->net_fill_receive_path)
+		ret = local->ops->net_fill_receive_path(&local->hw,
+							ctx, path);
+
+	return ret;
+}
+
 static inline int drv_net_setup_tc(struct ieee80211_local *local,
 				   struct ieee80211_sub_if_data *sdata,
 				   struct net_device *dev,

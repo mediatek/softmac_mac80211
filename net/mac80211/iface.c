@@ -1011,6 +1011,28 @@ out:
 	return ret;
 }
 
+static int ieee80211_netdev_fill_receive_path(struct net_device_path_ctx *ctx,
+					      struct net_device_path *path)
+{
+	struct ieee80211_sub_if_data *sdata;
+	struct ieee80211_local *local;
+	int ret = -ENOENT;
+
+	sdata = IEEE80211_DEV_TO_SUB_IF(ctx->dev);
+	local = sdata->local;
+
+	if (!local->ops->net_fill_receive_path)
+		return -EOPNOTSUPP;
+
+	rcu_read_lock();
+
+	ret = drv_net_fill_receive_path(local, ctx, path);
+
+	rcu_read_unlock();
+
+	return ret;
+}
+
 static const struct net_device_ops ieee80211_dataif_8023_ops = {
 	.ndo_open		= ieee80211_open,
 	.ndo_stop		= ieee80211_stop,
@@ -1019,6 +1041,7 @@ static const struct net_device_ops ieee80211_dataif_8023_ops = {
 	.ndo_set_rx_mode	= ieee80211_set_multicast_list,
 	.ndo_set_mac_address	= ieee80211_change_mac,
 	.ndo_fill_forward_path	= ieee80211_netdev_fill_forward_path,
+	.ndo_fill_receive_path	= ieee80211_netdev_fill_receive_path,
 	.ndo_setup_tc		= ieee80211_netdev_setup_tc,
 #if LINUX_VERSION_IS_LESS(6,9,0)
 	.ndo_get_stats64	= ieee80211_get_stats64,

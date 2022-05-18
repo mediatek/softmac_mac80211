@@ -4485,6 +4485,8 @@ struct ieee80211_prep_tx_info {
  *	resolve a path for hardware flow offloading
  * @can_activate_links: Checks if a specific active_links bitmap is
  *	supported by the driver.
+ * @net_fill_receive_path: Called from .ndo_fill_receive_path in order to
+ *	get a path for hardware flow offloading
  * @change_vif_links: Change the valid links on an interface, note that while
  *	removing the old link information is still valid (link_conf pointer),
  *	but may immediately disappear after the function returns. The old or
@@ -4890,6 +4892,9 @@ struct ieee80211_ops {
 	bool (*can_activate_links)(struct ieee80211_hw *hw,
 				   struct ieee80211_vif *vif,
 				   u16 active_links);
+	int (*net_fill_receive_path)(struct ieee80211_hw *hw,
+				     struct net_device_path_ctx *ctx,
+				     struct net_device_path *path);
 	int (*change_vif_links)(struct ieee80211_hw *hw,
 				struct ieee80211_vif *vif,
 				u16 old_links, u16 new_links,

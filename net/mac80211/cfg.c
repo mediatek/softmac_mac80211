@@ -6024,6 +6024,30 @@ ieee80211_set_nan_non_evac_channels(struct wiphy *wiphy,
 	return ieee80211_nan_set_non_evac_channels(sdata, channels);
 }
 
+static void
+ieee80211_skip_cac(struct wireless_dev *wdev, unsigned int link_id)
+{
+	struct net_device *dev = wdev->netdev;
+	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
+	struct ieee80211_link_data *link;
+	unsigned int cac_time_ms;
+
+	link = sdata_dereference(sdata->link[link_id], sdata);
+	if (!link)
+		return;
+
+	wiphy_delayed_work_cancel(sdata->local->hw.wiphy,
+				  &link->dfs_cac_timer_work);
+	if (wdev->cac_started) {
+		ieee80211_link_release_channel(link);
+		cac_time_ms = wdev->cac_time_ms;
+		wdev->cac_start_time = jiffies -
+				       msecs_to_jiffies(cac_time_ms + 1);
+		cfg80211_cac_event(wdev->netdev, &link->conf->chanreq.oper,
+				   NL80211_RADAR_CAC_FINISHED, GFP_KERNEL);
+	}
+}
+
 const struct cfg80211_ops mac80211_config_ops = {
 	.add_virtual_intf = ieee80211_add_iface,
 	.del_virtual_intf = ieee80211_del_iface,
@@ -6143,4 +6167,5 @@ const struct cfg80211_ops mac80211_config_ops = {
 	.nan_set_local_sched = ieee80211_set_local_nan_sched,
 	.nan_set_peer_sched = ieee80211_set_peer_nan_sched,
 	.nan_set_non_evac_channels = ieee80211_set_nan_non_evac_channels,
+	.skip_cac = ieee80211_skip_cac,
 };

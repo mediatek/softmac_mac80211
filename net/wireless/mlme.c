@@ -1250,14 +1250,17 @@ __cfg80211_background_cac_event(struct cfg80211_registered_device *rdev,
 		memcpy(&rdev->cac_done_chandef, chandef, sizeof(*chandef));
 		queue_work(cfg80211_wq, &rdev->propagate_cac_done_wk);
 		cfg80211_sched_dfs_chan_update(rdev);
+		rdev->background_cac_started = false;
 		break;
 	case NL80211_RADAR_CAC_ABORTED:
 		cfg80211_set_cac_state(wiphy, chandef, false);
 		if (!cancel_delayed_work(&rdev->background_cac_done_wk))
 			return;
+		rdev->background_cac_started = false;
 		break;
 	case NL80211_RADAR_CAC_STARTED:
 		cfg80211_set_cac_state(wiphy, chandef, true);
+		rdev->background_cac_started = true;
 		break;
 	default:
 		return;
@@ -1340,8 +1343,10 @@ cfg80211_start_background_radar_detection(struct cfg80211_registered_device *rde
 	if (!cac_time_ms)
 		cac_time_ms = IEEE80211_DFS_MIN_CAC_TIME_MS;
 
+	rdev->background_cac_time_ms = cac_time_ms;
 	rdev->background_radar_chandef = *chandef;
 	rdev->background_radar_wdev = wdev; /* Get offchain ownership */
+	rdev->background_cac_start_time = jiffies;
 
 	__cfg80211_background_cac_event(rdev, wdev, chandef,
 					NL80211_RADAR_CAC_STARTED);

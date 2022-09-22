@@ -5693,6 +5693,7 @@ struct cfg80211_ops {
 			    bool val);
 	int	(*start_pd)(struct wiphy *wiphy, struct wireless_dev *wdev);
 	void	(*stop_pd)(struct wiphy *wiphy, struct wireless_dev *wdev);
+	void	(*skip_cac)(struct wireless_dev *wdev, unsigned int link_id);
 };
 
 /*

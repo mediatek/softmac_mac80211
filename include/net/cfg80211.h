@@ -5278,6 +5278,7 @@ struct cfg80211_ops {
 				   struct cfg80211_ml_reconf_req *req);
 	int	(*set_epcs)(struct wiphy *wiphy, struct net_device *dev,
 			    bool val);
+	void	(*skip_cac)(struct wireless_dev *wdev, unsigned int link_id);
 };
 
 /*

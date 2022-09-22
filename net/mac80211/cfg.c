@@ -5407,6 +5407,30 @@ ieee80211_set_epcs(struct wiphy *wiphy, struct net_device *dev, bool enable)
 	return ieee80211_mgd_set_epcs(sdata, enable);
 }
 
+static void
+ieee80211_skip_cac(struct wireless_dev *wdev, unsigned int link_id)
+{
+	struct net_device *dev = wdev->netdev;
+	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
+	struct ieee80211_link_data *link;
+	unsigned int cac_time_ms;
+
+	link = sdata_dereference(sdata->link[link_id], sdata);
+	if (!link)
+		return;
+
+	wiphy_delayed_work_cancel(sdata->local->hw.wiphy,
+				  &link->dfs_cac_timer_work);
+	if (wdev->cac_started) {
+		ieee80211_link_release_channel(link);
+		cac_time_ms = wdev->cac_time_ms;
+		wdev->cac_start_time = jiffies -
+				       msecs_to_jiffies(cac_time_ms + 1);
+		cfg80211_cac_event(wdev->netdev, &link->conf->chanreq.oper,
+				   NL80211_RADAR_CAC_FINISHED, GFP_KERNEL);
+	}
+}
+
 const struct cfg80211_ops mac80211_config_ops = {
 	.add_virtual_intf = ieee80211_add_iface,
 	.del_virtual_intf = ieee80211_del_iface,
@@ -5523,4 +5547,5 @@ const struct cfg80211_ops mac80211_config_ops = {
 	.get_radio_mask = ieee80211_get_radio_mask,
 	.assoc_ml_reconf = ieee80211_assoc_ml_reconf,
 	.set_epcs = ieee80211_set_epcs,
+	.skip_cac = ieee80211_skip_cac,
 };

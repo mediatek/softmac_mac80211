@@ -98,6 +98,7 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 		return;
 
 	twt_agrt->req_type &= cpu_to_le16(~IEEE80211_TWT_REQTYPE_REQUEST);
+	twt->control |= IEEE80211_TWT_CONTROL_RX_DISABLED;
 
 	/* broadcast TWT not supported yet */
 	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST) {

@@ -6147,6 +6147,26 @@ ieee80211_determine_our_sta_mode_assoc(struct ieee80211_sub_if_data *sdata,
 			       conn->bw_limit, tmp.bw_limit);
 }
 
+static bool ieee80211_check_same_ctrl_channel(struct ieee80211_sub_if_data *sdata,
+					      const struct cfg80211_chan_def *chandef)
+{
+	struct ieee80211_local *local = sdata->local;
+	struct ieee80211_chanctx *ctx;
+
+	lockdep_assert_wiphy(local->hw.wiphy);
+
+	list_for_each_entry(ctx, &local->chanctx_list, list) {
+		if (ctx->replace_state == IEEE80211_CHANCTX_WILL_BE_REPLACED)
+			continue;
+		if (ctx->mode == IEEE80211_CHANCTX_EXCLUSIVE)
+			continue;
+		if (chandef->chan == ctx->conf.def.chan)
+			return true;
+	}
+
+	return false;
+}
+
 static int ieee80211_prep_channel(struct ieee80211_sub_if_data *sdata,
 				  struct ieee80211_link_data *link,
 				  int link_id,
@@ -6225,6 +6245,9 @@ static int ieee80211_prep_channel(struct ieee80211_sub_if_data *sdata,
 	if (chanreq.oper.width == NL80211_CHAN_WIDTH_5 ||
 	    chanreq.oper.width == NL80211_CHAN_WIDTH_10 ||
 	    cfg80211_chandef_is_s1g(&chanreq.oper))
+		return ret;
+
+	if (!ret || !ieee80211_check_same_ctrl_channel(sdata, &chanreq.oper))
 		return ret;
 
 	while (ret && chanreq.oper.width != NL80211_CHAN_WIDTH_20_NOHT) {

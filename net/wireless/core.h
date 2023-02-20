@@ -485,7 +485,8 @@ void cfg80211_set_dfs_state(struct wiphy *wiphy,
 
 void cfg80211_dfs_channels_update_work(struct work_struct *work);
 void cfg80211_update_last_available(struct wiphy *wiphy,
-				    const struct cfg80211_chan_def *chandef);
+				    const struct cfg80211_chan_def *chandef,
+				    unsigned long csa_time);
 
 void cfg80211_sched_dfs_chan_update(struct cfg80211_registered_device *rdev);
 

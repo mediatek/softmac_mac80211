@@ -31,7 +31,8 @@ static int ___cfg80211_stop_ap(struct cfg80211_registered_device *rdev,
 		return -ENOENT;
 
 	cfg80211_update_last_available(wdev->wiphy,
-				       &wdev->links[link_id].ap.chandef);
+				       &wdev->links[link_id].ap.chandef,
+				       0);
 
 	err = rdev_stop_ap(rdev, dev, link_id);
 	if (!err) {

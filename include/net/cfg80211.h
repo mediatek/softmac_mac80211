@@ -9030,6 +9030,22 @@ void cfg80211_cac_event(struct net_device *netdev,
 			unsigned int link_id);
 
 /**
+ * cfg80211_sta_update_dfs_state - Update channel's DFS state during STA channel switch,
+ *				   association, and disassociation
+ * @wdev: the wireless device
+ * @bss_chandef: the current BSS channel definition
+ * @csa_chandef: the CSA channel definition
+ * @csa_time: the expected CSA countdown complete time
+ * @associated: whether STA is during association or disassociation process
+ *
+ */
+void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
+				   const struct cfg80211_chan_def *bss_chandef,
+				   const struct cfg80211_chan_def *csa_chandef,
+				   unsigned long csa_time,
+				   bool associated);
+
+/**
  * cfg80211_background_cac_abort - Channel Availability Check offchan abort event
  * @wiphy: the wiphy
  *

@@ -3086,6 +3086,12 @@ ieee80211_sta_process_chanswitch(struct ieee80211_link_data *link,
 	csa_time_tu = (max_t(int, csa_ie.count, 1) - 1) * link->conf->beacon_int;
 	link->u.mgd.csa.time = now + us_to_ktime(ieee80211_tu_to_usec(csa_time_tu));
 
+	cfg80211_sta_update_dfs_state(&sdata->wdev,
+				      &link->conf->chanreq.oper,
+				      &link->csa.chanreq.oper,
+				      link->u.mgd.csa.time,
+				      sdata->vif.cfg.assoc);
+
 	if (ieee80211_vif_link_active(&sdata->vif, link->link_id) &&
 	    local->ops->channel_switch) {
 		/*
@@ -4317,6 +4323,10 @@ static void ieee80211_set_disassoc(struct ieee80211_sub_if_data *sdata,
 		link = sdata_dereference(sdata->link[link_id], sdata);
 		if (!link)
 			continue;
+
+		cfg80211_sta_update_dfs_state(&sdata->wdev,
+					      &link->conf->chanreq.oper,
+					      NULL, 0, sdata->vif.cfg.assoc);
 		ieee80211_link_release_channel(link);
 	}
 
@@ -6792,6 +6802,11 @@ static void ieee80211_rx_mgmt_assoc_resp(struct ieee80211_sub_if_data *sdata,
 		for (ac = 0; ac < IEEE80211_NUM_ACS; ac++)
 			if (link->tx_conf[ac].uapsd)
 				resp.uapsd_queues |= ieee80211_ac_to_qos_mask[ac];
+
+		if (status_code == WLAN_STATUS_SUCCESS)
+			cfg80211_sta_update_dfs_state(&sdata->wdev,
+						      &link->conf->chanreq.oper,
+						      NULL, 0, sdata->vif.cfg.assoc);
 	}
 
 	if (ieee80211_vif_is_mld(&sdata->vif)) {

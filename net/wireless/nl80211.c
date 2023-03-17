@@ -12456,6 +12456,11 @@ static int nl80211_channel_switch(struct sk_buff *skb, struct genl_info *info)
 		goto free;
 
 skip_beacons:
+	/* Use RADAR_BACKGROUND attribute here for skipping CAC */
+	if (info->attrs[NL80211_ATTR_RADAR_BACKGROUND]) {
+		cfg80211_set_dfs_state(&rdev->wiphy, &params.chandef, NL80211_DFS_AVAILABLE);
+	}
+
 	beacon_check.iftype = wdev->iftype;
 	beacon_check.relax = true;
 	beacon_check.reg_power =

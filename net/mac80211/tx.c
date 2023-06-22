@@ -4495,7 +4495,7 @@ void __ieee80211_subif_start_xmit(struct sk_buff *skb,
 	len = 0;
  out:
 	if (len)
-		ieee80211_tpt_led_trig_tx(local, len);
+		ieee80211_tpt_led_trig_tx(&local->hw, len);
 	rcu_read_unlock();
 }
 
@@ -4820,7 +4820,7 @@ static void ieee80211_8023_xmit(struct ieee80211_sub_if_data *sdata,
 		sta->deflink.tx_stats.bytes[queue] += len;
 	}
 
-	ieee80211_tpt_led_trig_tx(local, len);
+	ieee80211_tpt_led_trig_tx(&local->hw, len);
 
 	ieee80211_tx_8023(sdata, skb, sta, false);
 }
@@ -6690,7 +6690,7 @@ int ieee80211_tx_control_port(struct wiphy *wiphy, struct net_device *dev,
 
 	local_bh_disable();
 	dev_sw_netstats_tx_add(dev, 1, skb->len);
-	ieee80211_tpt_led_trig_tx(local, skb->len);
+	ieee80211_tpt_led_trig_tx(&local->hw, skb->len);
 	ieee80211_xmit(sdata, sta, skb);
 	local_bh_enable();
 	rcu_read_unlock();

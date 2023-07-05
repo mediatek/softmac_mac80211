@@ -1320,6 +1320,18 @@ void cfg80211_stop_radar_detection(struct wireless_dev *wdev)
 	}
 }
 
+void cfg80211_background_radar_update_channel(struct wiphy *wiphy,
+					      const struct cfg80211_chan_def *chandef,
+					      bool expand)
+{
+	enum nl80211_radar_event event;
+
+	event = expand ? NL80211_RADAR_BACKGROUND_CHAN_EXPAND :
+			 NL80211_RADAR_BACKGROUND_CHAN_UPDATE;
+	nl80211_radar_notify(wiphy_to_rdev(wiphy), chandef, event, NULL, GFP_ATOMIC);
+}
+EXPORT_SYMBOL(cfg80211_background_radar_update_channel);
+
 void cfg80211_stop_background_radar_detection(struct wireless_dev *wdev)
 {
 	struct wiphy *wiphy = wdev->wiphy;

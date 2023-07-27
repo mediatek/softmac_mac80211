@@ -12234,6 +12234,11 @@ static int nl80211_start_radar_detection(struct sk_buff *skb,
 	wdev->links[link_id].cac_time_ms = cac_time_ms;
 	cfg80211_set_cac_state(wiphy, &chandef, true);
 
+	if (rdev->background_cac_started &&
+	    cfg80211_is_sub_chan(&chandef, rdev->background_radar_chandef.chan, false)) {
+		cfg80211_stop_background_radar_detection(rdev->background_radar_wdev);
+	}
+
 	return 0;
 }
 

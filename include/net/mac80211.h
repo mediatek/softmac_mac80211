@@ -8006,4 +8006,11 @@ int ieee80211_emulate_switch_vif_chanctx(struct ieee80211_hw *hw,
  * Return: %true iff the vif is a NAN interface and NAN is started
  */
 bool ieee80211_vif_nan_started(struct ieee80211_vif *vif);
+
+/**
+ * ieee80211_get_scanning - get scanning bitmask
+ *
+ * @hw: pointer as obtained from ieee80211_alloc_hw()
+ */
+unsigned long ieee80211_get_scanning(struct ieee80211_hw *hw);
 #endif /* MAC80211_H */

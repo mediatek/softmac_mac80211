@@ -4632,3 +4632,11 @@ bool ieee80211_vif_nan_started(struct ieee80211_vif *vif)
 	return vif->type == NL80211_IFTYPE_NAN && sdata->u.nan.started;
 }
 EXPORT_SYMBOL_GPL(ieee80211_vif_nan_started);
+
+unsigned long ieee80211_get_scanning(struct ieee80211_hw *hw)
+{
+	struct ieee80211_local *local = hw_to_local(hw);
+
+	return local->scanning;
+}
+EXPORT_SYMBOL(ieee80211_get_scanning);

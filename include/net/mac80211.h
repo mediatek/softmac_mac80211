@@ -8263,4 +8263,11 @@ bool ieee80211_vif_nan_started(struct ieee80211_vif *vif);
  * Return: 0 if success and non-zero on error
  */
 int ieee80211_encrypt_tx_skb(struct sk_buff *skb);
+
+/**
+ * ieee80211_get_scanning - get scanning bitmask
+ *
+ * @hw: pointer as obtained from ieee80211_alloc_hw()
+ */
+unsigned long ieee80211_get_scanning(struct ieee80211_hw *hw);
 #endif /* MAC80211_H */

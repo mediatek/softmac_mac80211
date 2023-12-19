@@ -6669,7 +6669,7 @@ int ieee80211_tx_control_port(struct wiphy *wiphy, struct net_device *dev,
 	 * for MLO STA, the SA should be the AP MLD address, but
 	 * the link ID has been selected already
 	 */
-	if (sta && sta->sta.mlo)
+	if (sta && sta->sta.mlo && link_id == IEEE80211_LINK_UNSPECIFIED)
 		memcpy(ehdr->h_source, sdata->vif.addr, ETH_ALEN);
 
 	info = IEEE80211_SKB_CB(skb);

@@ -4246,13 +4246,15 @@ static void cfg80211_check_and_end_cac(struct cfg80211_registered_device *rdev)
 	 */
 	list_for_each_entry(wdev, &rdev->wiphy.wdev_list, list) {
 		struct cfg80211_chan_def *chandef;
+		unsigned int link_id;
 
 		for_each_valid_link(wdev, link_id) {
 			if (!wdev->links[link_id].cac_started)
 				continue;
 
 			chandef = wdev_chandef(wdev, link_id);
-			if (!chandef)
+			if (!chandef || !chandef->chan ||
+			    chandef->chan->band != NL80211_BAND_5GHZ)
 				continue;
 
 			if (!cfg80211_chandef_dfs_usable(&rdev->wiphy, chandef))

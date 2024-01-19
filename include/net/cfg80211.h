@@ -5003,6 +5003,7 @@ struct cfg80211_ops {
 
 	int	(*start_radar_detection)(struct wiphy *wiphy,
 					 struct net_device *dev,
+					 unsigned int link_id,
 					 struct cfg80211_chan_def *chandef,
 					 u32 cac_time_ms, int link_id);
 	void	(*end_cac)(struct wiphy *wiphy,

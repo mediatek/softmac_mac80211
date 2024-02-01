@@ -9016,6 +9016,7 @@ void cfg80211_sta_opmode_change_notify(struct net_device *dev, const u8 *mac,
 /**
  * cfg80211_cac_event - Channel availability check (CAC) event
  * @netdev: network device
+ * @link_id: the link ID for MLO, must be 0 for non-MLO
  * @chandef: chandef for the current channel
  * @event: type of event
  * @gfp: context flags

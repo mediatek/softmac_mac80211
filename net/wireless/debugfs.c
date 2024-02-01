@@ -187,10 +187,11 @@ static int dfs_status_read_wdev(struct wiphy *wiphy, struct wireless_dev *wdev, 
 				if (remain_time > wait_time_ms)
 					remain_time = 0;
 			} else if (chan->dfs_state == NL80211_DFS_USABLE) {
-				if (wdev->cac_started &&
+				if (wdev->links[link_id].cac_started &&
 				    cfg80211_is_sub_chan(chandef, chan, false)) {
-					jiffies_passed = jiffies - wdev->cac_start_time;
-					wait_time_ms = wdev->cac_time_ms;
+					jiffies_passed = jiffies -
+							 wdev->links[link_id].cac_start_time;
+					wait_time_ms = wdev->links[link_id].cac_time_ms;
 					remain_time = (wait_time_ms -
 						       jiffies_to_msecs(jiffies_passed));
 				}
@@ -336,7 +337,8 @@ dfs_cac_skip(void *data, u64 val)
 					continue;
 
 				if (cfg80211_chandef_dfs_required(wiphy, c, wdev->iftype) > 0 &&
-				    cfg80211_chandef_dfs_usable(wiphy, c) && wdev->cac_started) {
+				    cfg80211_chandef_dfs_usable(wiphy, c) &&
+				    wdev->links[link_id].cac_started) {
 					rdev_skip_cac(rdev, wdev, link_id);
 				}
 			}

@@ -4212,7 +4212,6 @@ EXPORT_SYMBOL(regulatory_pre_cac_allowed);
 static void cfg80211_check_and_end_cac(struct cfg80211_registered_device *rdev)
 {
 	struct wireless_dev *wdev;
-	unsigned int link_id;
 
 	guard(wiphy)(&rdev->wiphy);
 

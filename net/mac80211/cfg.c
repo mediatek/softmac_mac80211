@@ -5567,13 +5567,13 @@ ieee80211_skip_cac(struct wireless_dev *wdev, unsigned int link_id)
 
 	wiphy_delayed_work_cancel(sdata->local->hw.wiphy,
 				  &link->dfs_cac_timer_work);
-	if (wdev->cac_started) {
+	if (wdev->cac_links & BIT(link_id)) {
 		ieee80211_link_release_channel(link);
-		cac_time_ms = wdev->cac_time_ms;
-		wdev->cac_start_time = jiffies -
-				       msecs_to_jiffies(cac_time_ms + 1);
+		cac_time_ms = wdev->links[link_id].cac_time_ms;
+		wdev->links[link_id].cac_start_time = jiffies -
+						      msecs_to_jiffies(cac_time_ms + 1);
 		cfg80211_cac_event(wdev->netdev, &link->conf->chanreq.oper,
-				   NL80211_RADAR_CAC_FINISHED, GFP_KERNEL);
+				   NL80211_RADAR_CAC_FINISHED, GFP_KERNEL, link_id);
 	}
 }
 

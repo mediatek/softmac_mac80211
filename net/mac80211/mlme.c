@@ -2376,7 +2376,6 @@ void ieee80211_send_4addr_nullfunc(struct ieee80211_local *local,
 {
 	struct sk_buff *skb;
 	struct ieee80211_hdr *nullfunc;
-	u8 assoc_link_id = ifmgd->assoc_data->assoc_link_id;
 	__le16 fc;
 
 	if (WARN_ON(sdata->vif.type != NL80211_IFTYPE_STATION))

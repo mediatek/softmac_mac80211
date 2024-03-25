@@ -913,7 +913,8 @@ int ieee80211_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 		need_offchan = false;
 	} else if (sdata->vif.type == NL80211_IFTYPE_NAN) {
 		/* Frames can be sent during NAN schedule */
-	} else if (!need_offchan) {
+	} else if (!need_offchan && !(ieee80211_vif_is_mld(&sdata->vif) &&
+		   is_multicast_ether_addr(mgmt->da))) {
 		struct ieee80211_chanctx_conf *chanctx_conf = NULL;
 		int i;
 

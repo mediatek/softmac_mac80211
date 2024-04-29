@@ -2203,6 +2203,9 @@ static int sta_apply_parameters(struct ieee80211_local *local,
 	if (ret)
 		return ret;
 
+	if (params->eml_cap)
+		sta->sta.eml_cap = params->eml_cap;
+
 	if (params->support_p2p_ps >= 0)
 		sta->sta.support_p2p_ps = params->support_p2p_ps;
 

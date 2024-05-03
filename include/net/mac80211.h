@@ -8024,6 +8024,14 @@ int ieee80211_emulate_switch_vif_chanctx(struct ieee80211_hw *hw,
 bool ieee80211_vif_nan_started(struct ieee80211_vif *vif);
 
 /**
+ * ieee80211_links_removed - notify removed links
+ * @vif: interface to be notified
+ * @removed_links: links bitmap being removed
+ *
+ */
+void ieee80211_links_removed(struct ieee80211_vif *vif, u16 removed_links);
+
+/**
  * ieee80211_get_scanning - get scanning bitmask
  *
  * @hw: pointer as obtained from ieee80211_alloc_hw()

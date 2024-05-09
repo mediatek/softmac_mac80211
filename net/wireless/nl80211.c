@@ -10552,6 +10552,12 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 		n_channels = validate_scan_freqs(scan_freqs);
 		if (!n_channels)
 			return -EINVAL;
+	} else if (wdev->iftype == NL80211_IFTYPE_AP && !wdev->valid_links) {
+		struct ieee80211_channel *chan = wdev->links[0].ap.chandef.chan;
+		if (!chan || !wiphy->bands[chan->band])
+			return -EINVAL;
+
+		n_channels = wiphy->bands[chan->band]->n_channels;
 	} else {
 		n_channels = ieee80211_get_num_supported_channels(wiphy);
 	}
@@ -10606,6 +10612,21 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 			if (chan->flags & IEEE80211_CHAN_DISABLED ||
 			    chan->flags & IEEE80211_CHAN_S1G_NO_PRIMARY ||
 			    !cfg80211_wdev_channel_allowed(wdev, chan))
+				continue;
+
+			request->req.channels[i] = chan;
+			i++;
+		}
+	} else if (wdev->iftype == NL80211_IFTYPE_AP && !wdev->valid_links) {
+		enum nl80211_band band = wdev->links[0].ap.chandef.chan->band;
+		int j;
+
+		for (j = 0; j < wiphy->bands[band]->n_channels; j++) {
+			struct ieee80211_channel *chan;
+
+			chan = &wiphy->bands[band]->channels[j];
+
+			if (chan->flags & IEEE80211_CHAN_DISABLED)
 				continue;
 
 			request->req.channels[i] = chan;

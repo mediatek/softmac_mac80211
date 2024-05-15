@@ -5092,7 +5092,10 @@ static int ieee80211_probe_peer(struct wiphy *wiphy, struct net_device *dev,
 
 	info = IEEE80211_SKB_CB(skb);
 	info->flags |= IEEE80211_TX_CTL_REQ_TX_STATUS |
-		       IEEE80211_TX_INTFL_NL80211_FRAME_TX;
+		       IEEE80211_TX_INTFL_NL80211_FRAME_TX |
+		       IEEE80211_TX_CTL_USE_MINRATE;
+	if (ieee80211_vif_is_mld(&sdata->vif))
+		info->control.flags |= IEEE80211_TX_CTRL_MLO_LINK_UNSPEC;
 	info->band = band;
 	info->control.flags |= u32_encode_bits(link_id,
 					       IEEE80211_TX_CTRL_MLO_LINK);

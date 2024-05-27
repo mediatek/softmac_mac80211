@@ -21213,7 +21213,8 @@ void cfg80211_ch_switch_notify(struct net_device *dev,
 	}
 
 	cfg80211_schedule_channels_check(wdev);
-	cfg80211_sched_dfs_chan_update(rdev);
+	if (chandef->chan && chandef->chan->band == NL80211_BAND_5GHZ)
+		cfg80211_sched_dfs_chan_update(rdev);
 
 	nl80211_ch_switch_notify(rdev, dev, link_id, chandef, GFP_KERNEL,
 				 NL80211_CMD_CH_SWITCH_NOTIFY, 0, false);
@@ -21296,6 +21297,7 @@ nl80211_radar_notify(struct cfg80211_registered_device *rdev,
 		     enum nl80211_radar_event event,
 		     struct net_device *netdev, gfp_t gfp)
 {
+	struct wiphy *wiphy = &rdev->wiphy;
 	struct sk_buff *msg;
 	void *hdr;
 
@@ -21312,7 +21314,6 @@ nl80211_radar_notify(struct cfg80211_registered_device *rdev,
 	if (nla_put_u32(msg, NL80211_ATTR_WIPHY, rdev->wiphy_idx))
 		goto nla_put_failure;
 
-	/* NOP and radar events don't need a netdev parameter */
 	if (netdev) {
 		struct wireless_dev *wdev = netdev->ieee80211_ptr;
 
@@ -21330,7 +21331,7 @@ nl80211_radar_notify(struct cfg80211_registered_device *rdev,
 
 	genlmsg_end(msg, hdr);
 
-	genlmsg_multicast_netns(&nl80211_fam, wiphy_net(&rdev->wiphy), msg, 0,
+	genlmsg_multicast_netns(&nl80211_fam, wiphy_net(wiphy), msg, 0,
 				NL80211_MCGRP_MLME, gfp);
 	return;
 

@@ -1580,21 +1580,6 @@ bool cfg80211_any_usable_channels(struct wiphy *wiphy,
 }
 EXPORT_SYMBOL(cfg80211_any_usable_channels);
 
-static void cfg80211_sta_radar_notify(struct wiphy *wiphy,
-				      const struct cfg80211_chan_def *chandef,
-				      enum nl80211_radar_event event)
-{
-	struct wireless_dev *wdev;
-
-	list_for_each_entry(wdev, &wiphy->wdev_list, list) {
-		if (cfg80211_chandef_dfs_required(wiphy, chandef, wdev->iftype) > 0) {
-			nl80211_radar_notify(wiphy_to_rdev(wiphy), chandef,
-					     event, wdev->netdev, GFP_KERNEL);
-			return;
-		}
-	}
-}
-
 void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
 				   const struct cfg80211_chan_def *bss_chandef,
 				   const struct cfg80211_chan_def *csa_chandef,
@@ -1607,7 +1592,7 @@ void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
 	enum nl80211_dfs_state dfs_state = NL80211_DFS_USABLE;
 	enum nl80211_radar_event event = NL80211_RADAR_STA_CAC_EXPIRED;
 
-	lockdep_assert_wiphy(wdev->wiphy);
+	lockdep_assert_wiphy(wiphy);
 
 	if (!bss_chandef || !bss_chandef->chan ||
 	    bss_chandef->chan->band != NL80211_BAND_5GHZ)
@@ -1620,14 +1605,14 @@ void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
 		cfg80211_set_dfs_state(wiphy, csa_chandef, NL80211_DFS_AVAILABLE);
 		/* avoid the dfs state from expired during csa countdown */
 		cfg80211_update_last_available(wiphy, csa_chandef, csa_time);
-		nl80211_radar_notify(rdev, csa_chandef,
-				     NL80211_RADAR_STA_CAC_SKIPPED, GFP_KERNEL);
+		nl80211_radar_notify(rdev, csa_chandef, NL80211_RADAR_STA_CAC_SKIPPED,
+				     wdev->netdev, GFP_KERNEL);
 		netdev_info(wdev->netdev, "Set CSA channel's DFS state to available\n");
 	}
 
 	/* avoid updating the dfs state during nop */
-	if (!cfg80211_chandef_dfs_usable(wdev->wiphy, bss_chandef) &&
-	    !cfg80211_chandef_dfs_available(wdev->wiphy, bss_chandef))
+	if (!cfg80211_chandef_dfs_usable(wiphy, bss_chandef) &&
+	    !cfg80211_chandef_dfs_available(wiphy, bss_chandef))
 		return;
 
 	if (associated && !csa_active) {
@@ -1639,13 +1624,12 @@ void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
 	 * when other interfaces still operate on this channel
 	 */
 	if (dfs_state == NL80211_DFS_USABLE &&
-	    (cfg80211_is_wiphy_oper_chan(wdev->wiphy, bss_chandef->chan) ||
-	     cfg80211_offchan_chain_is_active(wiphy_to_rdev(wdev->wiphy),
-					      bss_chandef->chan)))
+	    (cfg80211_is_wiphy_oper_chan(wiphy, bss_chandef->chan) ||
+	     cfg80211_offchan_chain_is_active(rdev, bss_chandef->chan)))
 		return;
 
-	cfg80211_set_dfs_state(wdev->wiphy, bss_chandef, dfs_state);
-	cfg80211_sta_radar_notify(wdev->wiphy, bss_chandef, event);
+	cfg80211_set_dfs_state(wiphy, bss_chandef, dfs_state);
+	nl80211_radar_notify(rdev, bss_chandef, event, wdev->netdev, GFP_KERNEL);
 
 	if (csa_active)
 		netdev_info(wdev->netdev, "Set origin channel's DFS state to usable\n");

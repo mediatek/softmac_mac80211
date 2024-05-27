@@ -1181,7 +1181,6 @@ __cfg80211_background_cac_event(struct cfg80211_registered_device *rdev,
 				enum nl80211_radar_event event)
 {
 	struct wiphy *wiphy = &rdev->wiphy;
-	struct net_device *netdev;
 
 	lockdep_assert_wiphy(&rdev->wiphy);
 
@@ -1197,13 +1196,11 @@ __cfg80211_background_cac_event(struct cfg80211_registered_device *rdev,
 		memcpy(&rdev->cac_done_chandef, chandef, sizeof(*chandef));
 		queue_work(cfg80211_wq, &rdev->propagate_cac_done_wk);
 		cfg80211_sched_dfs_chan_update(rdev);
-		wdev = rdev->background_radar_wdev;
 		rdev->background_cac_started = false;
 		break;
 	case NL80211_RADAR_CAC_ABORTED:
 		if (!cancel_delayed_work(&rdev->background_cac_done_wk))
 			return;
-		wdev = rdev->background_radar_wdev;
 		rdev->background_cac_started = false;
 		break;
 	case NL80211_RADAR_CAC_STARTED:
@@ -1213,8 +1210,7 @@ __cfg80211_background_cac_event(struct cfg80211_registered_device *rdev,
 		return;
 	}
 
-	netdev = wdev ? wdev->netdev : NULL;
-	nl80211_radar_notify(rdev, chandef, event, netdev, GFP_KERNEL);
+	nl80211_radar_notify(rdev, chandef, event, NULL, GFP_KERNEL);
 }
 
 static void

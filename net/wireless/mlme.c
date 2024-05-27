@@ -1236,7 +1236,6 @@ __cfg80211_background_cac_event(struct cfg80211_registered_device *rdev,
 				enum nl80211_radar_event event)
 {
 	struct wiphy *wiphy = &rdev->wiphy;
-	struct net_device *netdev;
 
 	lockdep_assert_wiphy(&rdev->wiphy);
 
@@ -1266,8 +1265,7 @@ __cfg80211_background_cac_event(struct cfg80211_registered_device *rdev,
 		return;
 	}
 
-	netdev = wdev ? wdev->netdev : NULL;
-	nl80211_radar_notify(rdev, chandef, event, netdev, GFP_KERNEL);
+	nl80211_radar_notify(rdev, chandef, event, NULL, GFP_KERNEL);
 }
 
 void cfg80211_background_cac_done_wk(struct work_struct *work)

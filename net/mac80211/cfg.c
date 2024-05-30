@@ -3790,7 +3790,7 @@ static int ieee80211_set_bitrate_mask(struct wiphy *wiphy,
 	}
 
 	if (ieee80211_hw_check(&local->hw, HAS_RATE_CONTROL)) {
-		ret = drv_set_bitrate_mask(local, sdata, mask);
+		ret = drv_set_bitrate_mask(local, sdata, mask, link_id);
 		if (ret)
 			return ret;
 	}

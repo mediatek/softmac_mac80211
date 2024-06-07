@@ -4578,6 +4578,7 @@ struct ieee80211_prep_tx_info {
  * @set_eml_op_mode: Configure eMLSR/eMLMR operation mode in the underlay
  *	driver according to the parameter received in the EML Operating mode
  *	notification frame.
+ * @set_qos_map: Set QoS mapping information to driver.
  */
 struct ieee80211_ops {
 	void (*tx)(struct ieee80211_hw *hw,
@@ -4980,6 +4981,8 @@ struct ieee80211_ops {
 			       struct ieee80211_vif *vif,
 			       struct ieee80211_sta *sta,
 			       struct ieee80211_eml_params *eml_params);
+	int (*set_qos_map)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+			   struct cfg80211_qos_map *qos_map);
 };
 
 /**

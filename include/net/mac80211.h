@@ -3810,6 +3810,8 @@ enum ieee80211_rate_control_changed {
 	IEEE80211_RC_SMPS_CHANGED	= BIT(1),
 	IEEE80211_RC_SUPP_RATES_CHANGED	= BIT(2),
 	IEEE80211_RC_NSS_CHANGED	= BIT(3),
+	/* Defined for mtk vendor command */
+	IEEE80211_RC_CODING_TYPE_CHANGED= BIT(7),
 };
 
 /**

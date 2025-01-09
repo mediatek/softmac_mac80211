@@ -111,6 +111,8 @@ ieee80211_sta_keep_active(struct sta_info *sta, u8 ac)
 	return time_before_eq(jiffies, sta->airtime[ac].last_active + HZ / 10);
 }
 
+#define AIRTIME_QUANTUM_SHIFT	3
+
 struct ieee80211_bss {
 	u32 device_ts_beacon, device_ts_presp;
 
@@ -1429,10 +1431,12 @@ struct ieee80211_local {
 	spinlock_t handle_wake_tx_queue_lock;
 
 	u16 airtime_flags;
+	u32 aql_txq_limit_bc;
 	u32 aql_txq_limit_low[IEEE80211_NUM_ACS];
 	u32 aql_txq_limit_high[IEEE80211_NUM_ACS];
 	u32 aql_threshold;
 	atomic_t aql_total_pending_airtime;
+	atomic_t aql_bc_pending_airtime;
 	atomic_t aql_ac_pending_airtime[IEEE80211_NUM_ACS];
 
 	const struct ieee80211_ops *ops;

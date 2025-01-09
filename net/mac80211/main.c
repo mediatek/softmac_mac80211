@@ -983,6 +983,7 @@ struct ieee80211_hw *ieee80211_alloc_hw_nm(size_t priv_data_len,
 	spin_lock_init(&local->rx_path_lock);
 	spin_lock_init(&local->queue_stop_reason_lock);
 
+	local->aql_txq_limit_bc = IEEE80211_DEFAULT_AQL_TXQ_LIMIT_BC;
 	for (i = 0; i < IEEE80211_NUM_ACS; i++) {
 		INIT_LIST_HEAD(&local->active_txqs[i]);
 		spin_lock_init(&local->active_txq_lock[i]);
@@ -1606,24 +1607,6 @@ int ieee80211_register_hw(struct ieee80211_hw *hw)
 	rate_control_add_debugfs(local);
 
 	ieee80211_check_wbrf_support(local);
-
-	rtnl_lock();
-	wiphy_lock(hw->wiphy);
-
-	/* add one default STA interface if supported */
-	if (local->hw.wiphy->interface_modes & BIT(NL80211_IFTYPE_STATION) &&
-	    !ieee80211_hw_check(hw, NO_AUTO_VIF)) {
-		struct vif_params params = {0};
-
-		result = ieee80211_if_add(local, "wlan%d", NET_NAME_ENUM, NULL,
-					  NL80211_IFTYPE_STATION, &params);
-		if (result)
-			wiphy_warn(local->hw.wiphy,
-				   "Failed to add default virtual iface\n");
-	}
-
-	wiphy_unlock(hw->wiphy);
-	rtnl_unlock();
 
 #ifdef CONFIG_INET
 	local->ifa_notifier.notifier_call = ieee80211_ifa_changed;

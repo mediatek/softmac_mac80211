@@ -86,7 +86,7 @@ static int conf_askvalue(struct symbol *sym, const char *def)
 	enum symbol_type type = sym_get_type(sym);
 
 	if (!sym_has_value(sym))
-		printf(_("(NEW) "));
+		printf("%s", _("(NEW) "));
 
 	line[0] = '\n';
 	line[1] = 0;
@@ -282,7 +282,7 @@ static int conf_choice(struct menu *menu)
 			if (child->sym->name)
 				printf(" (%s)", child->sym->name);
 			if (!sym_has_value(child->sym))
-				printf(_(" (NEW)"));
+				printf("%s", _(" (NEW)"));
 			printf("\n");
 		}
 		printf(_("%*schoice"), indent - 1, "");
@@ -437,7 +437,7 @@ static void check_conf(struct menu *menu)
 				}
 			} else {
 				if (!conf_cnt++)
-					printf(_("*\n* Restart config...\n*\n"));
+					printf("%s", _("*\n* Restart config...\n*\n"));
 				rootEntry = menu_get_parent_menu(menu);
 				conf(rootEntry);
 			}
@@ -598,40 +598,12 @@ int main(int ac, char **av)
 	case oldconfig:
 	case listnewconfig:
 	case olddefconfig:
-		conf_read(NULL);
-		break;
 	case allnoconfig:
 	case allyesconfig:
 	case allmodconfig:
 	case alldefconfig:
 	case randconfig:
-		name = getenv("KCONFIG_ALLCONFIG");
-		if (!name)
-			break;
-		if ((strcmp(name, "") != 0) && (strcmp(name, "1") != 0)) {
-			if (conf_read_simple(name, S_DEF_USER)) {
-				fprintf(stderr,
-					_("*** Can't read seed configuration \"%s\"!\n"),
-					name);
-				exit(1);
-			}
-			break;
-		}
-		switch (input_mode) {
-		case allnoconfig:	name = "allno.config"; break;
-		case allyesconfig:	name = "allyes.config"; break;
-		case allmodconfig:	name = "allmod.config"; break;
-		case alldefconfig:	name = "alldef.config"; break;
-		case randconfig:	name = "allrandom.config"; break;
-		default: break;
-		}
-		if (conf_read_simple(name, S_DEF_USER) &&
-		    conf_read_simple("all.config", S_DEF_USER)) {
-			fprintf(stderr,
-				_("*** KCONFIG_ALLCONFIG set, but no \"%s\" or \"all.config\" file found\n"),
-				name);
-			exit(1);
-		}
+		conf_read(NULL);
 		break;
 	default:
 		break;
@@ -642,7 +614,7 @@ int main(int ac, char **av)
 			name = getenv("KCONFIG_NOSILENTUPDATE");
 			if (name && *name) {
 				fprintf(stderr,
-					_("\n*** The configuration requires explicit update.\n\n"));
+					"%s", _("\n*** The configuration requires explicit update.\n\n"));
 				return 1;
 			}
 		}
@@ -694,22 +666,22 @@ int main(int ac, char **av)
 		 * All other commands are only used to generate a config.
 		 */
 		if (conf_get_changed() && conf_write(NULL)) {
-			fprintf(stderr, _("\n*** Error during writing of the configuration.\n\n"));
+			fprintf(stderr, "%s", _("\n*** Error during writing of the configuration.\n\n"));
 			exit(1);
 		}
 		if (conf_write_autoconf()) {
-			fprintf(stderr, _("\n*** Error during update of the configuration.\n\n"));
+			fprintf(stderr, "%s", _("\n*** Error during update of the configuration.\n\n"));
 			return 1;
 		}
 	} else if (input_mode == savedefconfig) {
 		if (conf_write_defconfig(defconfig_file)) {
-			fprintf(stderr, _("n*** Error while saving defconfig to: %s\n\n"),
+			fprintf(stderr, _("\n*** Error while saving defconfig to: %s\n\n"),
 				defconfig_file);
 			return 1;
 		}
 	} else if (input_mode != listnewconfig) {
 		if (conf_write(NULL)) {
-			fprintf(stderr, _("\n*** Error during writing of the configuration.\n\n"));
+			fprintf(stderr, "%s", _("\n*** Error during writing of the configuration.\n\n"));
 			exit(1);
 		}
 	}

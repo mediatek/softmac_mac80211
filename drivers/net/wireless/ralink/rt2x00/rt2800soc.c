@@ -27,6 +27,12 @@
 #include "rt2800lib.h"
 #include "rt2800mmio.h"
 
+/* Needed to probe CHIP_VER register on MT7620 */
+#ifdef CONFIG_SOC_MT7620
+#include <asm/mach-ralink/ralink_regs.h>
+#include <asm/mach-ralink/mt7620.h>
+#endif
+
 /* Allow hardware encryption to be disabled. */
 static bool modparam_nohwcrypt;
 module_param_named(nohwcrypt, modparam_nohwcrypt, bool, 0444);
@@ -90,19 +96,6 @@ static int rt2800soc_set_device_state(struct rt2x00_dev *rt2x00dev,
 	return retval;
 }
 
-static int rt2800soc_read_eeprom(struct rt2x00_dev *rt2x00dev)
-{
-	void __iomem *base_addr = ioremap(0x1F040000, EEPROM_SIZE);
-
-	if (!base_addr)
-		return -ENOMEM;
-
-	memcpy_fromio(rt2x00dev->eeprom, base_addr, EEPROM_SIZE);
-
-	iounmap(base_addr);
-	return 0;
-}
-
 /* Firmware functions */
 static char *rt2800soc_get_firmware_name(struct rt2x00_dev *rt2x00dev)
 {
@@ -149,6 +142,27 @@ static int rt2800soc_resume(struct platform_device *pdev)
 }
 #endif /* CONFIG_PM */
 
+#ifdef CONFIG_SOC_MT7620
+static int rt2800soc_get_chippkg(void)
+{
+	return mt7620_get_pkg();
+}
+
+static int rt2800soc_get_chipver(void)
+{
+	return mt7620_get_chipver();
+}
+
+static int rt2800soc_get_chipeco(void)
+{
+	return mt7620_get_eco();
+}
+#else
+static int rt2800soc_get_chippkg(void) { return 0; }
+static int rt2800soc_get_chipver(void) { return 0; }
+static int rt2800soc_get_chipeco(void) { return 0; }
+#endif
+
 static const struct ieee80211_ops rt2800soc_mac80211_ops = {
 	.add_chanctx = ieee80211_emulate_add_chanctx,
 	.remove_chanctx = ieee80211_emulate_remove_chanctx,
@@ -190,12 +204,15 @@ static const struct rt2800_ops rt2800soc_rt2800_ops = {
 	.register_multiread	= rt2x00mmio_register_multiread,
 	.register_multiwrite	= rt2x00mmio_register_multiwrite,
 	.regbusy_read		= rt2x00mmio_regbusy_read,
-	.read_eeprom		= rt2800soc_read_eeprom,
+	.read_eeprom		= rt2x00lib_read_eeprom,
 	.hwcrypt_disabled	= rt2800soc_hwcrypt_disabled,
 	.drv_write_firmware	= rt2800soc_write_firmware,
 	.drv_init_registers	= rt2800mmio_init_registers,
 	.drv_get_txwi		= rt2800mmio_get_txwi,
 	.drv_get_dma_done	= rt2800mmio_get_dma_done,
+	.hw_get_chippkg		= rt2800soc_get_chippkg,
+	.hw_get_chipver		= rt2800soc_get_chipver,
+	.hw_get_chipeco		= rt2800soc_get_chipeco,
 };
 
 static const struct rt2x00lib_ops rt2800soc_rt2x00_ops = {
@@ -344,7 +361,8 @@ MODULE_DEVICE_TABLE(of, rt2880_wmac_match);
 static struct platform_driver rt2800soc_driver = {
 	.driver		= {
 		.name		= "rt2800_wmac",
-		.of_match_table = rt2880_wmac_match,
+		.mod_name	= KBUILD_MODNAME,
+		.of_match_table	= rt2880_wmac_match,
 	},
 	.probe		= rt2800soc_probe,
 	.remove		= rt2800soc_remove,

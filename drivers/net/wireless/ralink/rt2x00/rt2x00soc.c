@@ -86,6 +86,7 @@ int rt2x00soc_probe(struct platform_device *pdev, const struct rt2x00_ops *ops)
 	if (IS_ERR(rt2x00dev->clk))
 		rt2x00dev->clk = NULL;
 
+	set_bit(REQUIRE_EEPROM_FILE, &rt2x00dev->cap_flags);
 	rt2x00_set_chip_intf(rt2x00dev, RT2X00_CHIP_INTF_SOC);
 
 	retval = rt2x00soc_alloc_reg(rt2x00dev);
@@ -95,6 +96,21 @@ int rt2x00soc_probe(struct platform_device *pdev, const struct rt2x00_ops *ops)
 	retval = rt2x00lib_probe_dev(rt2x00dev);
 	if (retval)
 		goto exit_free_reg;
+
+	rt2x00dev->pinctrl = devm_pinctrl_get(&pdev->dev);
+	if (IS_ERR(rt2x00dev->pinctrl)) {
+		rt2x00dev->pinctrl = NULL;
+		rt2x00dev->pins_default = NULL;
+		rt2x00dev->pins_pa_gpio = NULL;
+	} else {
+		rt2x00dev->pins_default = pinctrl_lookup_state(rt2x00dev->pinctrl, "default");
+		if (IS_ERR(rt2x00dev->pins_default))
+			rt2x00dev->pins_default = NULL;
+
+		rt2x00dev->pins_pa_gpio = pinctrl_lookup_state(rt2x00dev->pinctrl, "pa_gpio");
+		if (IS_ERR(rt2x00dev->pins_pa_gpio))
+			rt2x00dev->pins_pa_gpio = NULL;
+	}
 
 	return 0;
 

@@ -76,6 +76,9 @@ struct rt2800_ops {
 	int (*drv_init_registers)(struct rt2x00_dev *rt2x00dev);
 	__le32 *(*drv_get_txwi)(struct queue_entry *entry);
 	unsigned int (*drv_get_dma_done)(struct data_queue *queue);
+	int (*hw_get_chippkg)(void);
+	int (*hw_get_chipver)(void);
+	int (*hw_get_chipeco)(void);
 };
 
 static inline u32 rt2800_register_read(struct rt2x00_dev *rt2x00dev,
@@ -184,6 +187,27 @@ static inline unsigned int rt2800_drv_get_dma_done(struct data_queue *queue)
 	return rt2800ops->drv_get_dma_done(queue);
 }
 
+static inline int rt2800_hw_get_chippkg(struct rt2x00_dev *rt2x00dev)
+{
+	const struct rt2800_ops *rt2800ops = rt2x00dev->ops->drv;
+
+	return rt2800ops->hw_get_chippkg();
+}
+
+static inline int rt2800_hw_get_chipver(struct rt2x00_dev *rt2x00dev)
+{
+	const struct rt2800_ops *rt2800ops = rt2x00dev->ops->drv;
+
+	return rt2800ops->hw_get_chipver();
+}
+
+static inline int rt2800_hw_get_chipeco(struct rt2x00_dev *rt2x00dev)
+{
+	const struct rt2800_ops *rt2800ops = rt2x00dev->ops->drv;
+
+	return rt2800ops->hw_get_chipeco();
+}
+
 void rt2800_mcu_request(struct rt2x00_dev *rt2x00dev,
 			const u8 command, const u8 token,
 			const u8 arg0, const u8 arg1);
@@ -270,5 +294,14 @@ void rt2800_get_txwi_rxwi_size(struct rt2x00_dev *rt2x00dev,
 			       unsigned short *txwi_size,
 			       unsigned short *rxwi_size);
 void rt2800_pre_reset_hw(struct rt2x00_dev *rt2x00dev);
+
+/*
+ * EEPROM file handlers.
+ */
+#ifdef CPTCFG_RT2X00_LIB_EEPROM
+int rt2x00lib_read_eeprom(struct rt2x00_dev *rt2x00dev);
+#else
+#define rt2x00lib_read_eeprom	NULL
+#endif /* CPTCFG_RT2X00_LIB_EEPROM */
 
 #endif /* RT2800LIB_H */

@@ -151,6 +151,7 @@ struct ath_common {
 	int debug_mask;
 	enum ath_device_state state;
 	unsigned long op_flags;
+	u32 chan_bw;
 
 	struct ath_ani ani;
 
@@ -181,6 +182,7 @@ struct ath_common {
 	const struct ath_ops *ops;
 	const struct ath_bus_ops *bus_ops;
 	const struct ath_ps_ops *ps_ops;
+	const struct ieee80211_ops *ieee_ops;
 
 	bool btcoex_enabled;
 	bool disable_ani;

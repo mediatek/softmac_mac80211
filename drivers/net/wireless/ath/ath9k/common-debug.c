@@ -261,3 +261,110 @@ void ath9k_cmn_debug_phy_err(struct dentry *debugfs_phy,
 			    &fops_phy_err);
 }
 EXPORT_SYMBOL(ath9k_cmn_debug_phy_err);
+
+static ssize_t read_file_eeprom(struct file *file, char __user *user_buf,
+			     size_t count, loff_t *ppos)
+{
+	struct ath_hw *ah = file->private_data;
+	struct ath_common *common = ath9k_hw_common(ah);
+	int bytes = 0;
+	int pos = *ppos;
+	int size = 4096;
+	u16 val;
+	int i;
+
+	if (AR_SREV_9300_20_OR_LATER(ah))
+		size = 16384;
+
+	if (*ppos < 0)
+		return -EINVAL;
+
+	if (count > size - *ppos)
+		count = size - *ppos;
+
+	for (i = *ppos / 2; count > 0; count -= bytes, *ppos += bytes, i++) {
+		void *from = &val;
+
+		if (!common->bus_ops->eeprom_read(common, i, &val))
+			val = 0xffff;
+
+		if (*ppos % 2) {
+			from++;
+			bytes = 1;
+		} else if (count == 1) {
+			bytes = 1;
+		} else {
+			bytes = 2;
+		}
+		if (copy_to_user(user_buf, from, bytes))
+			return -EFAULT;
+		user_buf += bytes;
+	}
+	return *ppos - pos;
+}
+
+static const struct file_operations fops_eeprom = {
+	.read = read_file_eeprom,
+	.open = simple_open,
+	.owner = THIS_MODULE
+};
+
+void ath9k_cmn_debug_eeprom(struct dentry *debugfs_phy,
+			    struct ath_hw *ah)
+{
+	debugfs_create_file("eeprom", S_IRUSR, debugfs_phy, ah,
+			    &fops_eeprom);
+}
+EXPORT_SYMBOL(ath9k_cmn_debug_eeprom);
+
+static ssize_t read_file_chan_bw(struct file *file, char __user *user_buf,
+			     size_t count, loff_t *ppos)
+{
+	struct ath_hw *ah = file->private_data;
+	struct ath_common *common = ath9k_hw_common(ah);
+	char buf[32];
+	unsigned int len;
+
+	len = sprintf(buf, "0x%08x\n", common->chan_bw);
+	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
+}
+
+static ssize_t write_file_chan_bw(struct file *file, const char __user *user_buf,
+			     size_t count, loff_t *ppos)
+{
+	struct ath_hw *ah = file->private_data;
+	struct ath_common *common = ath9k_hw_common(ah);
+	unsigned long chan_bw;
+	char buf[32];
+	ssize_t len;
+
+	len = min(count, sizeof(buf) - 1);
+	if (copy_from_user(buf, user_buf, len))
+		return -EFAULT;
+
+	buf[len] = '\0';
+	if (kstrtoul(buf, 0, &chan_bw))
+		return -EINVAL;
+
+	common->chan_bw = chan_bw;
+	if (!test_bit(ATH_OP_INVALID, &common->op_flags))
+		common->ieee_ops->config(ah->hw, IEEE80211_CONF_CHANGE_CHANNEL);
+
+	return count;
+}
+
+static const struct file_operations fops_chanbw = {
+	.read = read_file_chan_bw,
+	.write = write_file_chan_bw,
+	.open = simple_open,
+	.owner = THIS_MODULE,
+	.llseek = default_llseek,
+};
+
+void ath9k_cmn_debug_chanbw(struct dentry *debugfs_phy,
+			    struct ath_hw *ah)
+{
+	debugfs_create_file("chanbw", S_IRUSR | S_IWUSR, debugfs_phy, ah,
+			    &fops_chanbw);
+}
+EXPORT_SYMBOL(ath9k_cmn_debug_chanbw);

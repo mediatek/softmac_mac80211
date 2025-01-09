@@ -631,6 +631,7 @@ static int ath9k_init_priv(struct ath9k_htc_priv *priv,
 	priv->ah = ah;
 
 	common = ath9k_hw_common(ah);
+	common->ieee_ops = &ath9k_htc_ops;
 	common->ops = &ah->reg_ops;
 	common->ps_ops = &ath9k_htc_ps_ops;
 	common->bus_ops = &ath9k_usb_bus_ops;
@@ -746,9 +747,9 @@ static void ath9k_set_hw_capab(struct ath9k_htc_priv *priv,
 
 	hw->wiphy->flags |= WIPHY_FLAG_IBSS_RSN |
 			    WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL |
-			    WIPHY_FLAG_HAS_CHANNEL_SWITCH;
-
-	hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_TDLS;
+			    WIPHY_FLAG_HAS_CHANNEL_SWITCH |
+			    WIPHY_FLAG_SUPPORTS_5_10_MHZ |
+			    WIPHY_FLAG_SUPPORTS_TDLS;
 
 	hw->queues = 4;
 	hw->max_listen_interval = 1;

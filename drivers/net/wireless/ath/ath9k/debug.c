@@ -123,6 +123,61 @@ static const struct file_operations fops_debug = {
 
 #define DMA_BUF_LEN 1024
 
+#ifdef CONFIG_MAC80211_LEDS
+
+static ssize_t write_file_gpio_led(struct file *file, const char __user *ubuf,
+				   size_t count, loff_t *ppos)
+{
+	struct ath_softc *sc = file->private_data;
+	char buf[32], *str, *name, *c;
+	ssize_t len;
+	unsigned int gpio;
+	bool active_low = false;
+
+	len = min(count, sizeof(buf) - 1);
+	if (copy_from_user(buf, ubuf, len))
+		return -EFAULT;
+
+	buf[len] = '\0';
+	name = strchr(buf, ',');
+	if (!name)
+		return -EINVAL;
+
+	*(name++) = 0;
+	if (!*name)
+		return -EINVAL;
+
+	c = strchr(name, '\n');
+	if (c)
+		*c = 0;
+
+	str = buf;
+	if (*str == '!') {
+		str++;
+		active_low = true;
+	}
+
+	if (kstrtouint(str, 0, &gpio) < 0)
+		return -EINVAL;
+
+	if (gpio >= sc->sc_ah->caps.num_gpio_pins)
+		return -EINVAL;
+
+	if (ath_create_gpio_led(sc, gpio, name, NULL, active_low) < 0)
+		return -EINVAL;
+
+	return count;
+}
+
+static const struct file_operations fops_gpio_led = {
+	.write = write_file_gpio_led,
+	.open = simple_open,
+	.owner = THIS_MODULE,
+	.llseek = default_llseek,
+};
+
+#endif
+
 
 static ssize_t read_file_ani(struct file *file, char __user *user_buf,
 			     size_t count, loff_t *ppos)
@@ -1374,6 +1429,50 @@ void ath9k_deinit_debug(struct ath_softc *sc)
 	ath9k_cmn_spectral_deinit_debug(&sc->spec_priv);
 }
 
+static ssize_t read_file_diag(struct file *file, char __user *user_buf,
+			     size_t count, loff_t *ppos)
+{
+	struct ath_softc *sc = file->private_data;
+	struct ath_hw *ah = sc->sc_ah;
+	char buf[32];
+	unsigned int len;
+
+	len = sprintf(buf, "0x%08lx\n", ah->diag);
+	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
+}
+
+static ssize_t write_file_diag(struct file *file, const char __user *user_buf,
+			     size_t count, loff_t *ppos)
+{
+	struct ath_softc *sc = file->private_data;
+	struct ath_hw *ah = sc->sc_ah;
+	unsigned long diag;
+	char buf[32];
+	ssize_t len;
+
+	len = min(count, sizeof(buf) - 1);
+	if (copy_from_user(buf, user_buf, len))
+		return -EFAULT;
+
+	buf[len] = '\0';
+	if (kstrtoul(buf, 0, &diag))
+		return -EINVAL;
+
+	ah->diag = diag;
+	ath9k_hw_update_diag(ah);
+
+	return count;
+}
+
+static const struct file_operations fops_diag = {
+	.read = read_file_diag,
+	.write = write_file_diag,
+	.open = simple_open,
+	.owner = THIS_MODULE,
+	.llseek = default_llseek,
+};
+
+
 int ath9k_init_debug(struct ath_hw *ah)
 {
 	struct ath_common *common = ath9k_hw_common(ah);
@@ -1391,6 +1490,12 @@ int ath9k_init_debug(struct ath_hw *ah)
 	ath9k_tx99_init_debug(sc);
 	ath9k_cmn_spectral_init_debug(&sc->spec_priv, sc->debug.debugfs_phy);
 
+#ifdef CONFIG_MAC80211_LEDS
+	debugfs_create_file("gpio_led", S_IWUSR,
+			   sc->debug.debugfs_phy, sc, &fops_gpio_led);
+#endif
+	debugfs_create_file("diag", S_IRUSR | S_IWUSR, sc->debug.debugfs_phy,
+			    sc, &fops_diag);
 	debugfs_create_devm_seqfile(sc->dev, "dma", sc->debug.debugfs_phy,
 				    read_file_dma);
 	debugfs_create_devm_seqfile(sc->dev, "interrupt", sc->debug.debugfs_phy,
@@ -1430,6 +1535,8 @@ int ath9k_init_debug(struct ath_hw *ah)
 
 	ath9k_cmn_debug_base_eeprom(sc->debug.debugfs_phy, sc->sc_ah);
 	ath9k_cmn_debug_modal_eeprom(sc->debug.debugfs_phy, sc->sc_ah);
+	ath9k_cmn_debug_eeprom(sc->debug.debugfs_phy, sc->sc_ah);
+	ath9k_cmn_debug_chanbw(sc->debug.debugfs_phy, sc->sc_ah);
 
 	debugfs_create_u32("gpio_mask", 0600,
 			   sc->debug.debugfs_phy, &sc->sc_ah->gpio_mask);

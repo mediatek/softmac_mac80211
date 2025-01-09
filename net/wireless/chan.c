@@ -643,6 +643,8 @@ void cfg80211_set_dfs_state(struct wiphy *wiphy,
 
 		c->dfs_state = dfs_state;
 		c->dfs_state_entered = jiffies;
+		if (dfs_state == NL80211_DFS_AVAILABLE)
+			c->dfs_state_last_available = jiffies;
 	}
 }
 
@@ -1027,6 +1029,25 @@ static bool cfg80211_chandef_dfs_available(struct wiphy *wiphy,
 	}
 
 	return true;
+}
+
+void cfg80211_update_last_available(struct wiphy *wiphy,
+				    const struct cfg80211_chan_def *chandef)
+{
+	struct ieee80211_channel *c;
+	int width;
+
+	width = cfg80211_chandef_get_width(chandef);
+	if (width < 0)
+		return;
+
+	for_each_subchan(chandef, freq, cf) {
+		c = ieee80211_get_channel_khz(wiphy, freq);
+		if (!c)
+			continue;
+
+		c->dfs_state_last_available = jiffies;
+	}
 }
 
 unsigned int

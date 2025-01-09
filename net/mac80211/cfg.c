@@ -3021,6 +3021,8 @@ static int ieee80211_scan(struct wiphy *wiphy,
 		 */
 		fallthrough;
 	case NL80211_IFTYPE_AP:
+		/* skip check */
+		break;
 		/*
 		 * If the scan has been forced (and the driver supports
 		 * forcing), don't care about being beaconing already.

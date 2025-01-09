@@ -28,6 +28,8 @@
 #include <linux/average.h>
 #include <linux/usb.h>
 #include <linux/clk.h>
+#include <linux/pinctrl/consumer.h>
+#include <linux/rt2x00_platform.h>
 
 #include <net/mac80211.h>
 
@@ -397,6 +399,7 @@ struct hw_mode_spec {
 	unsigned int supported_bands;
 #define SUPPORT_BAND_2GHZ	0x00000001
 #define SUPPORT_BAND_5GHZ	0x00000002
+#define SUPPORT_BAND_BOTH	(SUPPORT_BAND_2GHZ | SUPPORT_BAND_5GHZ)
 
 	unsigned int supported_rates;
 #define SUPPORT_RATE_CCK	0x00000001
@@ -692,6 +695,7 @@ enum rt2x00_capability_flags {
 	REQUIRE_HT_TX_DESC,
 	REQUIRE_PS_AUTOWAKE,
 	REQUIRE_DELAYED_RFKILL,
+	REQUIRE_EEPROM_FILE,
 
 	/*
 	 * Capabilities
@@ -1014,6 +1018,11 @@ struct rt2x00_dev {
 
 	/* Clock for System On Chip devices. */
 	struct clk *clk;
+
+	/* pinctrl and states for System On Chip devices with PA/LNA. */
+	struct pinctrl *pinctrl;
+	struct pinctrl_state *pins_default;
+	struct pinctrl_state *pins_pa_gpio;
 };
 
 struct rt2x00_bar_list_entry {

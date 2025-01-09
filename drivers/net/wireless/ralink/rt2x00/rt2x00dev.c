@@ -991,6 +991,11 @@ static void rt2x00lib_rate(struct ieee80211_rate *entry,
 int rt2x00lib_set_mac_address(struct rt2x00_dev *rt2x00dev, u8 *eeprom_mac_addr)
 {
 	int ret;
+	struct rt2x00_platform_data *pdata;
+
+	pdata = rt2x00dev->dev->platform_data;
+	if (pdata && pdata->mac_address)
+		ether_addr_copy(eeprom_mac_addr, pdata->mac_address);
 
 	ret = of_get_mac_address(rt2x00dev->dev->of_node, eeprom_mac_addr);
 	if (ret == -EPROBE_DEFER)
@@ -1013,6 +1018,32 @@ static int rt2x00lib_probe_hw_modes(struct rt2x00_dev *rt2x00dev,
 	struct ieee80211_rate *rates;
 	unsigned int num_rates;
 	unsigned int i;
+#ifdef CONFIG_OF
+	struct device_node *np = rt2x00dev->dev->of_node;
+	unsigned int enabled;
+	if (!of_property_read_u32(np, "ralink,2ghz",
+                                          &enabled) && !enabled)
+		spec->supported_bands &= ~SUPPORT_BAND_2GHZ;
+	if (!of_property_read_u32(np, "ralink,5ghz",
+                                          &enabled) && !enabled)
+		spec->supported_bands &= ~SUPPORT_BAND_5GHZ;
+#endif /* CONFIG_OF */
+
+	if (rt2x00dev->dev->platform_data) {
+		struct rt2x00_platform_data *pdata;
+
+		pdata = rt2x00dev->dev->platform_data;
+		if (pdata->disable_2ghz)
+			spec->supported_bands &= ~SUPPORT_BAND_2GHZ;
+		if (pdata->disable_5ghz)
+			spec->supported_bands &= ~SUPPORT_BAND_5GHZ;
+	}
+
+	if ((spec->supported_bands & SUPPORT_BAND_BOTH) == 0) {
+		rt2x00_err(rt2x00dev, "No supported bands\n");
+		return -EINVAL;
+	}
+
 
 	num_rates = 0;
 	if (spec->supported_rates & SUPPORT_RATE_CCK)
@@ -1336,7 +1367,7 @@ static inline void rt2x00lib_set_if_combinations(struct rt2x00_dev *rt2x00dev)
 	 */
 	if_limit = &rt2x00dev->if_limits_ap;
 	if_limit->max = rt2x00dev->ops->max_ap_intf;
-	if_limit->types = BIT(NL80211_IFTYPE_AP);
+	if_limit->types = BIT(NL80211_IFTYPE_AP) | BIT(NL80211_IFTYPE_STATION);
 #ifdef CPTCFG_MAC80211_MESH
 	if_limit->types |= BIT(NL80211_IFTYPE_MESH_POINT);
 #endif

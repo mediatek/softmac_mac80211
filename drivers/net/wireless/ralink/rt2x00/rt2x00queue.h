@@ -57,6 +57,26 @@ enum data_queue_qid {
 };
 
 /**
+ * rt2x00_ac_to_hwq - Convert IEEE80211 queue id to Ralink hardware
+ * queue register index.
+ * @ac: TX queue id.
+ */
+static inline u8 rt2x00_ac_to_hwq(enum data_queue_qid ac)
+{
+	static const u8 ralink_queue_map[] = {
+		[IEEE80211_AC_BE] = 0,
+		[IEEE80211_AC_BK] = 1,
+		[IEEE80211_AC_VI] = 2,
+		[IEEE80211_AC_VO] = 3,
+	};
+
+	if (unlikely(ac >= IEEE80211_NUM_ACS))
+		return ac;
+
+	return ralink_queue_map[ac];
+}
+
+/**
  * enum skb_frame_desc_flags: Flags for &struct skb_frame_desc
  *
  * @SKBDESC_DMA_MAPPED_RX: &skb_dma field has been mapped for RX

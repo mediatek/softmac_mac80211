@@ -1324,6 +1324,10 @@ struct ath10k {
 	s32 tx_power_2g_limit;
 	s32 tx_power_5g_limit;
 
+#ifdef CPTCFG_MAC80211_LEDS
+	const char *led_default_trigger;
+#endif
+
 	/* must be last */
 	u8 drv_priv[] __aligned(sizeof(void *));
 };

@@ -1585,7 +1585,11 @@ static int brcmf_usb_reset_device(struct device *dev, void *notused)
 
 void brcmf_usb_exit(void)
 {
+#if LINUX_VERSION_IS_GEQ(6,8,0)
 	struct device_driver *drv = &brcmf_usbdrvr.driver;
+#else
+	struct device_driver *drv = &brcmf_usbdrvr.drvwrap.driver;
+#endif
 	int ret;
 
 	brcmf_dbg(USB, "Enter\n");

@@ -1031,10 +1031,10 @@ static int ath11k_ahb_fw_resources_init(struct ath11k_base *ab)
 
 	ab_ahb->fw.dev = &pdev->dev;
 
-	iommu_dom = iommu_paging_domain_alloc(ab_ahb->fw.dev);
-	if (IS_ERR(iommu_dom)) {
+	iommu_dom = iommu_domain_alloc(&platform_bus_type);
+	if (!iommu_dom) {
 		ath11k_err(ab, "failed to allocate iommu domain\n");
-		ret = PTR_ERR(iommu_dom);
+		ret = -ENOMEM;
 		goto err_unregister;
 	}
 

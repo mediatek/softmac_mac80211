@@ -6,6 +6,18 @@ else
 export BACKPORTS_GIT_TRACKER_DEF=
 endif
 
+ifneq ($(LLVM),)
+ifneq ($(filter %/,$(LLVM)),)
+LLVM_PREFIX := $(LLVM)
+else ifneq ($(filter -%,$(LLVM)),)
+LLVM_SUFFIX := $(LLVM)
+endif
+
+HOSTCC	= $(LLVM_PREFIX)clang$(LLVM_SUFFIX)
+else
+HOSTCC	= gcc
+endif
+
 # disable built-in rules for this file
 .SUFFIXES:
 
@@ -24,21 +36,21 @@ listnewconfig oldaskconfig oldconfig \
 silentoldconfig olddefconfig oldnoconfig \
 allnoconfig allyesconfig allmodconfig \
 alldefconfig randconfig:
-	@$(MAKE) -C kconf conf
+	@$(MAKE) -C kconf CC=$(HOSTCC) conf
 	@./kconf/conf --$@ Kconfig
 
 .PHONY: usedefconfig
 usedefconfig:
-	@$(MAKE) -C kconf conf
+	@$(MAKE) -C kconf CC=$(HOSTCC) conf
 	@./kconf/conf --defconfig=defconfig Kconfig
 
 .PHONY: savedefconfig
 savedefconfig:
-	@$(MAKE) -C kconf conf
+	@$(MAKE) -C kconf CC=$(HOSTCC) conf
 	@./kconf/conf --savedefconfig=defconfig Kconfig
 
 defconfig-%::
-	@$(MAKE) -C kconf conf
+	@$(MAKE) -C kconf CC=$(HOSTCC) conf
 	@./kconf/conf --defconfig=defconfigs/$(@:defconfig-%=%) Kconfig
 
 .config:
@@ -59,7 +71,7 @@ defconfig-%::
 
 backport-include/backport/autoconf.h: .config Kconfig.versions Kconfig.kernel
 	@$(MAKE) oldconfig
-	@echo -n "Building backport-include/backport/autoconf.h ..."
+	@printf "Building backport-include/backport/autoconf.h ..."
 	@grep -f local-symbols .config | (				\
 		echo "#ifndef COMPAT_AUTOCONF_INCLUDED"			;\
 		echo "#define COMPAT_AUTOCONF_INCLUDED"			;\
@@ -80,7 +92,12 @@ backport-include/backport/autoconf.h: .config Kconfig.versions Kconfig.kernel
 			esac						;\
 		done							;\
 		echo "#endif /* COMPAT_AUTOCONF_INCLUDED */"		;\
-	) > backport-include/backport/autoconf.h
+	) > $@.new
+	@if cmp -s $@ $@.new; then \
+		rm -f $@.new; \
+	else \
+		mv $@.new $@; \
+	fi
 	@echo " done."
 
 .PHONY: modules

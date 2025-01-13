@@ -194,7 +194,6 @@ static int ieee80211_vif_update_links(struct ieee80211_sub_if_data *sdata,
 				      u16 new_links, u16 dormant_links)
 {
 	u16 old_links = sdata->vif.valid_links;
-	u16 old_active = sdata->vif.active_links;
 	unsigned long add = new_links & ~old_links;
 	unsigned long rem = old_links & ~new_links;
 	unsigned int link_id;
@@ -273,11 +272,18 @@ static int ieee80211_vif_update_links(struct ieee80211_sub_if_data *sdata,
 		ieee80211_set_vif_links_bitmaps(sdata, new_links, dormant_links);
 
 		/* tell the driver */
-		if (sdata->vif.type != NL80211_IFTYPE_AP_VLAN)
-			ret = drv_change_vif_links(sdata->local, sdata,
-						   old_links & old_active,
-						   new_links & sdata->vif.active_links,
-						   old);
+		// if (sdata->vif.type != NL80211_IFTYPE_AP_VLAN)
+		// 	ret = drv_change_vif_links(sdata->local, sdata,
+		// 				   old_links & old_active,
+		// 				   new_links & sdata->vif.active_links,
+		// 				   old);
+		/* FIXME
+		 * MLMR solution does link add/del when valid links change
+		 * and so we change to report old/new valid links to driver.
+		 * Also, TTLM is handled in other callbacks (not upstream yet).
+		 */
+		ret = drv_change_vif_links(sdata->local, sdata, old_links,
+					   new_links, old);
 		if (!new_links)
 			ieee80211_debugfs_recreate_netdev(sdata, false);
 	}

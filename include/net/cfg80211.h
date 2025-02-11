@@ -5881,6 +5881,8 @@ struct wiphy_radio {
  *
  * @radio: radios belonging to this wiphy
  * @n_radio: number of radios
+ *
+ * @dfs_relax: a flag to relax the DFS restrictions during scanning
  */
 struct wiphy {
 	struct mutex mtx;
@@ -6038,6 +6040,8 @@ struct wiphy {
 
 	int n_radio;
 	const struct wiphy_radio *radio;
+
+	bool dfs_relax;
 
 	char priv[] __aligned(NETDEV_ALIGN);
 };
@@ -6796,11 +6800,15 @@ bool cfg80211_radio_chandef_valid(const struct wiphy_radio *radio,
  *
  * @wdev: the wireless device
  * @chan: channel to check
+ * @radio_mask: check the channel under a user-specified radio mask.
+ *	If the radio_mask is 0, then wdev->radio_mask is used
+ *	to check the channel.
  *
  * Return: whether or not the wdev may use the channel
  */
 bool cfg80211_wdev_channel_allowed(struct wireless_dev *wdev,
-				   struct ieee80211_channel *chan);
+				   struct ieee80211_channel *chan,
+				   u32 radio_mask);
 
 /**
  * ieee80211_get_response_rate - get basic rate for a given rate

@@ -9879,7 +9879,8 @@ int nl80211_parse_random_mac(struct nlattr **attrs,
 }
 
 static bool cfg80211_off_channel_oper_allowed(struct wireless_dev *wdev,
-					      struct ieee80211_channel *chan)
+					      struct ieee80211_channel *chan,
+					      bool dfs_relax)
 {
 	unsigned int link_id;
 	bool all_ok = true;
@@ -9887,10 +9888,13 @@ static bool cfg80211_off_channel_oper_allowed(struct wireless_dev *wdev,
 
 	lockdep_assert_wiphy(wdev->wiphy);
 
-	if (!cfg80211_wdev_channel_allowed(wdev, chan))
+	if (!cfg80211_wdev_channel_allowed(wdev, chan, 0))
 		return false;
 
 	if (!cfg80211_beaconing_iface_active(wdev))
+		return true;
+
+	if (dfs_relax)
 		return true;
 
 	radio_idx = cfg80211_get_radio_idx_by_chan(wdev->wiphy, chan);
@@ -10120,7 +10124,7 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 
 			/* ignore disabled channels */
 			if (chan->flags & IEEE80211_CHAN_DISABLED ||
-			    !cfg80211_wdev_channel_allowed(wdev, chan))
+			    !cfg80211_wdev_channel_allowed(wdev, chan, 0))
 				continue;
 
 			request->req.channels[i] = chan;
@@ -10143,6 +10147,11 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 		}
 	} else {
 		enum nl80211_band band;
+		u32 radio_mask;
+
+		err = nl80211_parse_vif_radio_mask(info, &radio_mask);
+		if (err < 0)
+			goto out_free;
 
 		/* all channels */
 		for (band = 0; band < NUM_NL80211_BANDS; band++) {
@@ -10156,7 +10165,7 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 				chan = &wiphy->bands[band]->channels[j];
 
 				if (chan->flags & IEEE80211_CHAN_DISABLED ||
-				    !cfg80211_wdev_channel_allowed(wdev, chan))
+				    !cfg80211_wdev_channel_allowed(wdev, chan, radio_mask))
 					continue;
 
 				request->req.channels[i] = chan;
@@ -10176,7 +10185,7 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 		struct ieee80211_channel *chan = request->req.channels[i];
 
 		/* if we can go off-channel to the target channel we're good */
-		if (cfg80211_off_channel_oper_allowed(wdev, chan))
+		if (cfg80211_off_channel_oper_allowed(wdev, chan, wiphy->dfs_relax))
 			continue;
 
 		if (!cfg80211_wdev_on_sub_chan(wdev, chan, true)) {
@@ -13369,7 +13378,10 @@ static int nl80211_remain_on_channel(struct sk_buff *skb,
 	if (err)
 		return err;
 
-	if (!cfg80211_off_channel_oper_allowed(wdev, chandef.chan)) {
+	if (wdev->links[link_id].cac_started)
+		return -EBUSY;
+
+	if (!cfg80211_off_channel_oper_allowed(wdev, chandef.chan, rdev->wiphy.dfs_relax)) {
 		const struct cfg80211_chan_def *oper_chandef, *compat_chandef;
 
 		oper_chandef = wdev_chandef(wdev, link_id);
@@ -13586,7 +13598,7 @@ static int nl80211_tx_mgmt(struct sk_buff *skb, struct genl_info *info)
 		return -EINVAL;
 
 	if (params.offchan &&
-	    !cfg80211_off_channel_oper_allowed(wdev, chandef.chan))
+	    !cfg80211_off_channel_oper_allowed(wdev, chandef.chan, false))
 		return -EBUSY;
 
 	params.link_id = nl80211_link_id_or_invalid(info->attrs);

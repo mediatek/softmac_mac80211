@@ -6699,7 +6699,8 @@ int ieee80211_tx_control_port(struct wiphy *wiphy, struct net_device *dev,
 		return PTR_ERR(skb);
 	}
 
-	if (link_id != u32_get_bits(info->control.flags,
+	if (link_id != IEEE80211_LINK_UNSPECIFIED &&
+	    link_id != u32_get_bits(info->control.flags,
 				    IEEE80211_TX_CTRL_MLO_LINK)) {
 		ieee80211_free_txskb(&local->hw, skb);
 		rcu_read_unlock();

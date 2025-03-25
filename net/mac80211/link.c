@@ -12,68 +12,6 @@
 #include "key.h"
 #include "debugfs_netdev.h"
 
-static void ieee80211_update_apvlan_links(struct ieee80211_sub_if_data *sdata)
-{
-	struct ieee80211_sub_if_data *vlan;
-	struct ieee80211_link_data *link;
-	u16 ap_bss_links = sdata->vif.valid_links;
-	u16 new_links, vlan_links;
-	unsigned long add;
-
-	list_for_each_entry(vlan, &sdata->u.ap.vlans, u.vlan.list) {
-		int link_id;
-
-		/* No support for 4addr with MLO yet */
-		if (vlan->wdev.use_4addr)
-			return;
-
-		vlan_links = vlan->vif.valid_links;
-
-		new_links = ap_bss_links;
-
-		add = new_links & ~vlan_links;
-		if (!add)
-			continue;
-
-		ieee80211_vif_set_links(vlan, add, 0);
-
-		for_each_set_bit(link_id, &add, IEEE80211_MLD_MAX_NUM_LINKS) {
-			link = sdata_dereference(vlan->link[link_id], vlan);
-			ieee80211_link_vlan_copy_chanctx(link);
-		}
-	}
-}
-
-void ieee80211_apvlan_link_setup(struct ieee80211_sub_if_data *sdata)
-{
-	struct ieee80211_sub_if_data *ap_bss = container_of(sdata->bss,
-					    struct ieee80211_sub_if_data, u.ap);
-	u16 new_links = ap_bss->vif.valid_links;
-	unsigned long add;
-	int link_id;
-
-	if (!ap_bss->vif.valid_links)
-		return;
-
-	add = new_links;
-	for_each_set_bit(link_id, &add, IEEE80211_MLD_MAX_NUM_LINKS) {
-		sdata->wdev.valid_links |= BIT(link_id);
-		ether_addr_copy(sdata->wdev.links[link_id].addr,
-				ap_bss->wdev.links[link_id].addr);
-	}
-
-	ieee80211_vif_set_links(sdata, new_links, 0);
-}
-
-void ieee80211_apvlan_link_clear(struct ieee80211_sub_if_data *sdata)
-{
-	if (!sdata->wdev.valid_links)
-		return;
-
-	sdata->wdev.valid_links = 0;
-	ieee80211_vif_clear_links(sdata);
-}
-
 void ieee80211_link_setup(struct ieee80211_link_data *link)
 {
 	if (link->sdata->vif.type == NL80211_IFTYPE_STATION)
@@ -89,17 +27,6 @@ void ieee80211_link_init(struct ieee80211_sub_if_data *sdata,
 
 	if (link_id < 0)
 		link_id = 0;
-
-	if (sdata->vif.type == NL80211_IFTYPE_AP_VLAN) {
-		struct ieee80211_sub_if_data *ap_bss;
-		struct ieee80211_bss_conf *ap_bss_conf;
-
-		ap_bss = container_of(sdata->bss,
-				      struct ieee80211_sub_if_data, u.ap);
-		ap_bss_conf = sdata_dereference(ap_bss->vif.link_conf[link_id],
-						ap_bss);
-		memcpy(link_conf, ap_bss_conf, sizeof(*link_conf));
-	}
 
 	link->sdata = sdata;
 	link->link_id = link_id;
@@ -122,7 +49,6 @@ void ieee80211_link_init(struct ieee80211_sub_if_data *sdata,
 	if (!deflink) {
 		switch (sdata->vif.type) {
 		case NL80211_IFTYPE_AP:
-		case NL80211_IFTYPE_AP_VLAN:
 			ether_addr_copy(link_conf->addr,
 					sdata->wdev.links[link_id].addr);
 			link_conf->bssid = link_conf->addr;
@@ -249,7 +175,6 @@ static void ieee80211_set_vif_links_bitmaps(struct ieee80211_sub_if_data *sdata,
 
 	switch (sdata->vif.type) {
 	case NL80211_IFTYPE_AP:
-	case NL80211_IFTYPE_AP_VLAN:
 		/* in an AP all links are always active */
 		sdata->vif.active_links = valid_links;
 
@@ -358,9 +283,6 @@ static int ieee80211_vif_update_links(struct ieee80211_sub_if_data *sdata,
 						   old);
 		if (!new_links)
 			ieee80211_debugfs_recreate_netdev(sdata, false);
-
-		if (sdata->vif.type == NL80211_IFTYPE_AP)
-			ieee80211_update_apvlan_links(sdata);
 	}
 
 	/*

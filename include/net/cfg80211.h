@@ -2131,7 +2131,7 @@ struct cfg80211_tid_stats {
 	struct cfg80211_txq_stats txq_stats;
 };
 
-#define IEEE80211_MAX_CHAINS	4
+#define IEEE80211_MAX_CHAINS	5
 
 /**
  * struct link_station_info - link station information

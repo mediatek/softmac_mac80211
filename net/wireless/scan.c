@@ -3067,8 +3067,17 @@ cfg80211_parse_ml_elem_sta_data(struct wiphy *wiphy,
 		 * Without both pieces of information we cannot calculate the
 		 * reference BSSID, so simply ignore the BSS.
 		 */
+
+		/*
+		 * NonTxBSSID can be retrieved from the STA Info field in the
+		 * per-sta profile.
+		 * The BSSID can be directly retrieved without calculation of
+		 * address extension.
 		if (non_tx)
 			continue;
+		 */
+
+
 
 		/* We could sanity check the BSSID is included */
 

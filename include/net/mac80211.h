@@ -2789,6 +2789,8 @@ struct ieee80211_sta {
 	/* should only be accessed with the wiphy mutex held */
 	struct ieee80211_nan_peer_sched *nan_sched;
 
+	bool vendor_mtk;
+
 	/* must be last */
 	u8 drv_priv[] __aligned(sizeof(void *));
 };

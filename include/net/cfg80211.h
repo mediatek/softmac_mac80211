@@ -1957,6 +1957,7 @@ struct station_parameters {
 	struct link_station_parameters link_sta_params;
 	bool epp_peer;
 	const u8 *nmi_mac;
+	bool vendor_mtk;
 };
 
 /**

@@ -1812,6 +1812,7 @@ struct station_parameters {
 	bool eml_cap_present;
 	u16 eml_cap;
 	struct link_station_parameters link_sta_params;
+	bool vendor_mtk;
 };
 
 /**

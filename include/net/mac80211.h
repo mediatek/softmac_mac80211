@@ -2569,6 +2569,8 @@ struct ieee80211_sta {
 	struct ieee80211_link_sta deflink;
 	struct ieee80211_link_sta __rcu *link[IEEE80211_MLD_MAX_NUM_LINKS];
 
+	bool vendor_mtk;
+
 	/* must be last */
 	u8 drv_priv[] __aligned(sizeof(void *));
 };

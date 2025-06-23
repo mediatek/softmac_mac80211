@@ -1873,6 +1873,7 @@ struct station_parameters {
 	u16 eml_cap;
 	struct link_station_parameters link_sta_params;
 	bool epp_peer;
+	bool vendor_mtk;
 };
 
 /**

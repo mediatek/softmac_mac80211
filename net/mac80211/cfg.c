@@ -2345,6 +2345,9 @@ static int sta_apply_parameters(struct ieee80211_local *local,
 	if (ret)
 		return ret;
 
+	if (params->vendor_mtk)
+		sta->sta.vendor_mtk = params->vendor_mtk;
+
 	if (params->support_p2p_ps >= 0)
 		sta->sta.support_p2p_ps = params->support_p2p_ps;
 

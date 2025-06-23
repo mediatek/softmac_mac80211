@@ -979,6 +979,7 @@ static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_DISABLE_UHR] = { .type = NLA_FLAG },
 	[NL80211_ATTR_CNTDWN_OFFS_STA_PROF] = { .type = NLA_BINARY },
 	[NL80211_ATTR_CRTI_UPDATE_EVENT] = { .type = NLA_U8 },
+	[NL80211_ATTR_VENDOR_MTK_STA] = { .type = NLA_FLAG },
 };
 
 /* policy for the key attributes */
@@ -8590,6 +8591,10 @@ static int nl80211_set_station(struct sk_buff *skb, struct genl_info *info)
 	if (info->attrs[NL80211_ATTR_AIRTIME_WEIGHT])
 		params.airtime_weight =
 			nla_get_u16(info->attrs[NL80211_ATTR_AIRTIME_WEIGHT]);
+
+	if (info->attrs[NL80211_ATTR_VENDOR_MTK_STA])
+		params.vendor_mtk =
+			nla_get_flag(info->attrs[NL80211_ATTR_VENDOR_MTK_STA]);
 
 	if (params.airtime_weight &&
 	    !wiphy_ext_feature_isset(&rdev->wiphy,

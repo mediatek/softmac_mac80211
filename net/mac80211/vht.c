@@ -372,6 +372,10 @@ __ieee80211_sta_cap_rx_bw(struct link_sta_info *link_sta,
 
 			rcu_read_lock();
 			link_conf = rcu_dereference(sdata->vif.link_conf[link_id]);
+			if (unlikely(!link_conf)) {
+				rcu_read_unlock();
+				return IEEE80211_STA_RX_BW_20;
+			}
 			band = link_conf->chanreq.oper.chan->band;
 			rcu_read_unlock();
 		}

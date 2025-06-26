@@ -4061,15 +4061,22 @@ void ieee80211_csa_finish(struct ieee80211_vif *vif, unsigned int link_id)
 		 * interfaces when channel switch is received on
 		 * transmitting interface
 		 */
-		struct ieee80211_link_data *iter;
+		struct ieee80211_link_data *iter, *iter_tmp;
+		unsigned int link;
 
 		for_each_sdata_link_rcu(local, iter) {
 			if (iter->sdata == sdata ||
 			    rcu_access_pointer(iter->conf->tx_bss_conf) != tx_bss_conf)
 				continue;
 
-			wiphy_work_queue(iter->sdata->local->hw.wiphy,
-					 &iter->csa.finalize_work);
+			/* For non-tx bss, finalize the csa process for both
+			 * its partner links and itself.
+			 */
+			for_each_valid_link(&iter->sdata->wdev, link) {
+				iter_tmp = rcu_dereference(iter->sdata->link[link]);
+				wiphy_work_queue(iter->sdata->local->hw.wiphy,
+						 &iter_tmp->csa.finalize_work);
+			}
 		}
 	}
 

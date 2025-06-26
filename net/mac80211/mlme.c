@@ -5477,6 +5477,11 @@ static bool ieee80211_assoc_config_link(struct ieee80211_link_data *link,
 		ieee80211_vht_cap_ie_to_sta_vht_cap(sdata, sband,
 						    elems->vht_cap_elem,
 						    bss_vht_cap, link_sta);
+		bss_conf->vht_su_beamformer =
+			sband->vht_cap.cap & IEEE80211_VHT_CAP_SU_BEAMFORMER_CAPABLE;
+		bss_conf->vht_su_beamformee =
+			sband->vht_cap.cap & IEEE80211_VHT_CAP_SU_BEAMFORMEE_CAPABLE;
+
 		rcu_read_unlock();
 	}
 
@@ -5490,6 +5495,7 @@ static bool ieee80211_assoc_config_link(struct ieee80211_link_data *link,
 						  link_sta);
 
 		bss_conf->he_support = link_sta->pub->he_cap.has_he;
+		ieee80211_he_su_beamform_support(sdata, sband, bss_conf);
 		if (elems->rsnx && elems->rsnx_len &&
 		    (elems->rsnx[0] & WLAN_RSNX_CAPA_PROTECTED_TWT) &&
 		    wiphy_ext_feature_isset(local->hw.wiphy,
@@ -5522,6 +5528,7 @@ static bool ieee80211_assoc_config_link(struct ieee80211_link_data *link,
 			if (sdata->u.mgd.epcs.enabled &&
 			    !bss_conf->epcs_support)
 				ieee80211_epcs_teardown(sdata);
+			ieee80211_eht_su_beamform_support(sdata, sband, bss_conf);
 		} else {
 			bss_conf->eht_support = false;
 			bss_conf->epcs_support = false;

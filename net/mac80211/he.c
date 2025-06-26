@@ -365,3 +365,23 @@ void ieee80211_finalize_rx_omi_bw(struct ieee80211_link_sta *pub_link_sta)
 	trace_api_return_void(local);
 }
 EXPORT_SYMBOL_GPL(ieee80211_finalize_rx_omi_bw);
+
+void ieee80211_he_su_beamform_support(struct ieee80211_sub_if_data *sdata,
+				      struct ieee80211_supported_band *sband,
+				      struct ieee80211_bss_conf *bss_conf)
+{
+	const struct ieee80211_sta_he_cap *own_he_cap_ptr;
+	struct ieee80211_sta_he_cap own_he_cap;
+
+	own_he_cap_ptr =
+		ieee80211_get_he_iftype_cap_vif(sband, &sdata->vif);
+	if (!own_he_cap_ptr)
+		return;
+
+	own_he_cap = *own_he_cap_ptr;
+
+	bss_conf->he_su_beamformer =
+		own_he_cap.he_cap_elem.phy_cap_info[3] & IEEE80211_HE_PHY_CAP3_SU_BEAMFORMER;
+	bss_conf->he_su_beamformee =
+		own_he_cap.he_cap_elem.phy_cap_info[4] & IEEE80211_HE_PHY_CAP4_SU_BEAMFORMEE;
+}

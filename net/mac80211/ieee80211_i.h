@@ -2322,6 +2322,9 @@ void
 ieee80211_he_spr_ie_to_bss_conf(struct ieee80211_vif *vif,
 				const struct ieee80211_he_spr *he_spr_ie_elem);
 
+void ieee80211_he_su_beamform_support(struct ieee80211_sub_if_data *sdata,
+				      struct ieee80211_supported_band *sband,
+				      struct ieee80211_bss_conf *bss_conf);
 void
 ieee80211_he_op_ie_to_bss_conf(struct ieee80211_vif *vif,
 			const struct ieee80211_he_operation *he_op_ie_elem);
@@ -2860,6 +2863,9 @@ ieee80211_eht_cap_ie_to_sta_eht_cap(struct ieee80211_sub_if_data *sdata,
 				    const struct ieee80211_eht_cap_elem *eht_cap_ie_elem,
 				    u8 eht_cap_len,
 				    struct link_sta_info *link_sta);
+void ieee80211_eht_su_beamform_support(struct ieee80211_sub_if_data *sdata,
+				       struct ieee80211_supported_band *sband,
+				       struct ieee80211_bss_conf *bss_conf);
 void ieee80211_process_neg_ttlm_req(struct ieee80211_sub_if_data *sdata,
 				    struct ieee80211_mgmt *mgmt, size_t len);
 void ieee80211_process_neg_ttlm_res(struct ieee80211_sub_if_data *sdata,

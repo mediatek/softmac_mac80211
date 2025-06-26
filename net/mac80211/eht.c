@@ -277,3 +277,23 @@ void ieee80211_rx_eml_op_mode_notif(struct ieee80211_sub_if_data *sdata,
 
 	ieee80211_send_eml_op_mode_notif(sdata, mgmt, opt_len);
 }
+
+void ieee80211_eht_su_beamform_support(struct ieee80211_sub_if_data *sdata,
+				       struct ieee80211_supported_band *sband,
+				       struct ieee80211_bss_conf *bss_conf)
+{
+	const struct ieee80211_sta_eht_cap *own_eht_cap_ptr;
+	struct ieee80211_sta_eht_cap own_eht_cap;
+
+	own_eht_cap_ptr =
+		ieee80211_get_eht_iftype_cap_vif(sband, &sdata->vif);
+	if (!own_eht_cap_ptr)
+		return;
+
+	own_eht_cap = *own_eht_cap_ptr;
+
+	bss_conf->eht_su_beamformer =
+		own_eht_cap.eht_cap_elem.phy_cap_info[0] & IEEE80211_EHT_PHY_CAP0_SU_BEAMFORMER;
+	bss_conf->eht_su_beamformee =
+		own_eht_cap.eht_cap_elem.phy_cap_info[0] & IEEE80211_EHT_PHY_CAP0_SU_BEAMFORMEE;
+}

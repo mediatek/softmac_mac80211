@@ -6362,6 +6362,7 @@ static bool ieee80211_assoc_success(struct ieee80211_sub_if_data *sdata,
 	sta->sta.wme = (elems->wmm_param || elems->s1g_capab) &&
 		       local->hw.queues >= IEEE80211_NUM_ACS;
 
+	sta->sta.vendor_mtk = elems->vendor_mtk;
 	err = sta_info_move_state(sta, IEEE80211_STA_ASSOC);
 	if (!err && !(ifmgd->flags & IEEE80211_STA_CONTROL_PORT))
 		err = sta_info_move_state(sta, IEEE80211_STA_AUTHORIZED);

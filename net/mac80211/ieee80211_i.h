@@ -1867,6 +1867,7 @@ struct ieee802_11_elems {
 
 	/* whether/which parse error occurred while retrieving these elements */
 	u8 parse_error;
+	bool vendor_mtk;
 };
 
 static inline struct ieee80211_local *hw_to_local(

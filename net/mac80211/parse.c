@@ -422,6 +422,10 @@ _ieee802_11_parse_elems_full(struct ieee80211_elems_parse_params *params,
 					}
 				}
 			}
+			if (elen >= 4 && pos[0] == 0x00 && pos[1] == 0x0c &&
+			    pos[2] == 0xe7)
+				/* Mediatek OUI (00:0C:E7) */
+				elems->vendor_mtk = true;
 			break;
 		case WLAN_EID_RSN:
 			elems->rsn = pos;

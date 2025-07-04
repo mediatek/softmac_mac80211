@@ -4392,8 +4392,38 @@ __ieee80211_channel_switch(struct wiphy *wiphy, struct net_device *dev,
 		ieee80211_link_info_change_notify(sdata, link_data, changed);
 		drv_channel_switch_beacon(sdata, &link_data->csa.chanreq.oper);
 	} else {
-		/* if the beacon didn't change, we can finalize immediately */
-		ieee80211_csa_finalize(link_data);
+		struct ieee80211_link_data *iter, *iter_tmp;
+		int n_assigned = 0, n_reserved = 0;
+		unsigned int link;
+
+		/* if the beacon didn't change, we can finalize after
+		 * all assigned links are ready.
+		 */
+		list_for_each_entry(iter, &chanctx->assigned_links,
+				    assigned_chanctx_list) {
+			n_assigned++;
+			if (iter->reserved_chanctx)
+				n_reserved++;
+		}
+
+		/* Wait for all interfaces to be ready */
+		if (n_assigned != n_reserved) {
+			link_data->reserved_ready = true;
+			err = 0;
+			goto out;
+		}
+
+		list_for_each_entry(iter, &chanctx->assigned_links,
+				    assigned_chanctx_list) {
+			for_each_valid_link(&iter->sdata->wdev, link) {
+				iter_tmp = sdata_dereference(iter->sdata->link[link],
+							     iter->sdata);
+				if (!iter_tmp)
+					continue;
+				wiphy_work_queue(iter->sdata->local->hw.wiphy,
+						 &iter_tmp->csa.finalize_work);
+			}
+		}
 	}
 
 out:

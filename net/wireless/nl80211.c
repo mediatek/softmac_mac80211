@@ -7966,7 +7966,7 @@ static void cfg80211_sta_set_mld_sinfo(struct station_info *sinfo)
 		init++;
 
 		/* pertid stats accumulate for rx/tx fields */
-		if (sinfo->pertid) {
+		if (sinfo->pertid && link_sinfo->pertid) {
 			sinfo->pertid->rx_msdu +=
 				link_sinfo->pertid->rx_msdu;
 			sinfo->pertid->tx_msdu +=

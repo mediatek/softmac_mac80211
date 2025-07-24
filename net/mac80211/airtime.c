@@ -759,7 +759,8 @@ u32 ieee80211_calc_expected_tx_airtime(struct ieee80211_hw *hw,
 				       int len, bool ampdu)
 {
 	struct ieee80211_supported_band *sband;
-	struct ieee80211_chanctx_conf *conf;
+	struct ieee80211_bss_conf *link_conf = NULL;
+	struct ieee80211_chanctx_conf *conf = NULL;
 	int rateidx;
 	bool cck, short_pream;
 	u32 basic_rates;
@@ -768,7 +769,20 @@ u32 ieee80211_calc_expected_tx_airtime(struct ieee80211_hw *hw,
 
 	len += 38; /* Ethernet header length */
 
-	conf = rcu_dereference(vif->bss_conf.chanctx_conf);
+	if (ieee80211_vif_is_mld(vif)) {
+		unsigned int link;
+
+		for (link = 0; link < IEEE80211_MLD_MAX_NUM_LINKS ; link++) {
+			link_conf = rcu_dereference(vif->link_conf[link]);
+			if (link_conf)
+				break;
+		}
+	} else
+		link_conf = &vif->bss_conf;
+
+	if (link_conf)
+		conf = rcu_dereference(link_conf->chanctx_conf);
+
 	if (conf)
 		band = conf->def.chan->band;
 
@@ -826,8 +840,8 @@ u32 ieee80211_calc_expected_tx_airtime(struct ieee80211_hw *hw,
 	 */
 	sband = hw->wiphy->bands[band];
 
-	basic_rates = vif->bss_conf.basic_rates;
-	short_pream = vif->bss_conf.use_short_preamble;
+	basic_rates = link_conf->basic_rates;
+	short_pream = link_conf->use_short_preamble;
 
 	rateidx = basic_rates ? ffs(basic_rates) - 1 : 0;
 	rate = sband->bitrates[rateidx].bitrate;

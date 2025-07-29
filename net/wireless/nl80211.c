@@ -576,6 +576,18 @@ static const struct netlink_range_validation q_range = {
 };
 #endif
 
+static const struct nla_policy
+nl80211_broadcast_twt_policy[NL80211_BROADCAST_TWT_ATTR_MAX + 1] = {
+	[NL80211_BROADCAST_TWT_ATTR_ID] = NLA_POLICY_RANGE(NLA_U8, 0, 31),
+	[NL80211_BROADCAST_TWT_ATTR_MIN_WAKE_DUR] = { .type = NLA_U8 },
+	[NL80211_BROADCAST_TWT_ATTR_MANTISSA] = { .type = NLA_U16 },
+	[NL80211_BROADCAST_TWT_ATTR_EXPONENT] = NLA_POLICY_RANGE(NLA_U8, 0, 31),
+	[NL80211_BROADCAST_TWT_ATTR_TRIGGER] = { .type = NLA_FLAG },
+	[NL80211_BROADCAST_TWT_ATTR_FLOW_TYPE] = { .type = NLA_FLAG },
+	[NL80211_BROADCAST_TWT_ATTR_RECOMMENDATION] = NLA_POLICY_RANGE(NLA_U8, 0, 7),
+	[NL80211_BROADCAST_TWT_ATTR_PERSISTENCE] = { .type = NLA_U8 },
+};
+
 static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[0] = { .strict_start_type = NL80211_ATTR_HE_OBSS_PD },
 	[NL80211_ATTR_WIPHY] = { .type = NLA_U32 },
@@ -981,6 +993,8 @@ static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_CNTDWN_OFFS_STA_PROF] = { .type = NLA_BINARY },
 	[NL80211_ATTR_CRTI_UPDATE_EVENT] = { .type = NLA_U8 },
 	[NL80211_ATTR_VENDOR_MTK_STA] = { .type = NLA_FLAG },
+	[NL80211_ATTR_BROADCAST_TWT_PARAMS] =
+		NLA_POLICY_NESTED(nl80211_broadcast_twt_policy),
 };
 
 /* policy for the key attributes */
@@ -18145,6 +18159,81 @@ nl80211_epcs_cfg(struct sk_buff *skb, struct genl_info *info)
 	return rdev_set_epcs(rdev, dev, val);
 }
 
+static int
+nl80211_add_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
+{
+	struct cfg80211_registered_device *rdev = info->user_ptr[0];
+	struct net_device *dev = info->user_ptr[1];
+	struct wireless_dev *wdev = dev->ieee80211_ptr;
+	struct nlattr *tb[NL80211_BROADCAST_TWT_ATTR_MAX + 1];
+	struct cfg80211_broadcast_twt_settings settings;
+	int ret;
+
+	if (wdev->iftype != NL80211_IFTYPE_AP)
+		return -EOPNOTSUPP;
+
+	ret = nla_parse_nested(tb, NL80211_BROADCAST_TWT_ATTR_MAX,
+			       info->attrs[NL80211_ATTR_BROADCAST_TWT_PARAMS],
+			       nl80211_broadcast_twt_policy, info->extack);
+	if (ret)
+		return ret;
+
+	if (!tb[NL80211_BROADCAST_TWT_ATTR_ID] ||
+	    !tb[NL80211_BROADCAST_TWT_ATTR_MIN_WAKE_DUR] ||
+	    !tb[NL80211_BROADCAST_TWT_ATTR_MANTISSA] ||
+	    !tb[NL80211_BROADCAST_TWT_ATTR_EXPONENT] ||
+	    !tb[NL80211_BROADCAST_TWT_ATTR_RECOMMENDATION] ||
+	    !tb[NL80211_BROADCAST_TWT_ATTR_PERSISTENCE])
+		return -EINVAL;
+
+	memset(&settings, 0, sizeof(settings));
+	settings.id =
+		nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_ID]);
+	settings.min_wake_dur =
+		nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_MIN_WAKE_DUR]);
+	settings.wake_intv_mantissa =
+		nla_get_u16(tb[NL80211_BROADCAST_TWT_ATTR_MANTISSA]);
+	settings.wake_intv_exp =
+		nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_EXPONENT]);
+	settings.trigger =
+		nla_get_flag(tb[NL80211_BROADCAST_TWT_ATTR_TRIGGER]);
+	settings.flow_type =
+		nla_get_flag(tb[NL80211_BROADCAST_TWT_ATTR_FLOW_TYPE]);
+	settings.recommendation =
+		nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_RECOMMENDATION]);
+	settings.persist =
+		nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_PERSISTENCE]);
+
+	return rdev_add_btwt(rdev, dev, &settings);
+}
+
+static int
+nl80211_del_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
+{
+	struct cfg80211_registered_device *rdev = info->user_ptr[0];
+	struct net_device *dev = info->user_ptr[1];
+	struct wireless_dev *wdev = dev->ieee80211_ptr;
+	struct nlattr *tb[NL80211_BROADCAST_TWT_ATTR_MAX + 1];
+	u8 id;
+	int ret;
+
+	if (wdev->iftype != NL80211_IFTYPE_AP)
+		return -EOPNOTSUPP;
+
+	ret = nla_parse_nested(tb, NL80211_BROADCAST_TWT_ATTR_MAX,
+			       info->attrs[NL80211_ATTR_BROADCAST_TWT_PARAMS],
+			       nl80211_broadcast_twt_policy, info->extack);
+	if (ret)
+		return ret;
+
+	if (!tb[NL80211_BROADCAST_TWT_ATTR_ID])
+		return -EINVAL;
+
+	id = nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_ID]);
+
+	return rdev_del_btwt(rdev, dev, id);
+}
+
 #define NL80211_FLAG_NEED_WIPHY		0x01
 #define NL80211_FLAG_NEED_NETDEV	0x02
 #define NL80211_FLAG_NEED_RTNL		0x04
@@ -19373,6 +19462,18 @@ static const struct genl_small_ops nl80211_small_ops[] = {
 	{
 		.cmd = NL80211_CMD_EPCS_CFG,
 		.doit = nl80211_epcs_cfg,
+		.flags = GENL_UNS_ADMIN_PERM,
+		.internal_flags = IFLAGS(NL80211_FLAG_NEED_NETDEV_UP),
+	},
+	{
+		.cmd = NL80211_CMD_ADD_BROADCAST_TWT,
+		.doit = nl80211_add_broadcast_twt,
+		.flags = GENL_UNS_ADMIN_PERM,
+		.internal_flags = IFLAGS(NL80211_FLAG_NEED_NETDEV_UP),
+	},
+	{
+		.cmd = NL80211_CMD_DEL_BROADCAST_TWT,
+		.doit = nl80211_del_broadcast_twt,
 		.flags = GENL_UNS_ADMIN_PERM,
 		.internal_flags = IFLAGS(NL80211_FLAG_NEED_NETDEV_UP),
 	},

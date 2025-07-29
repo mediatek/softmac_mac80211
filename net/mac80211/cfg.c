@@ -5811,6 +5811,39 @@ void ieee80211_crit_update_notify(struct ieee80211_vif *vif, unsigned int link_i
 }
 EXPORT_SYMBOL_GPL(ieee80211_crit_update_notify);
 
+static int
+ieee80211_add_btwt(struct wiphy *wiphy, struct net_device *dev,
+		   struct cfg80211_broadcast_twt_settings *settings)
+{
+	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
+	struct ieee80211_local *local = sdata->local;
+	int ret;
+
+	lockdep_assert_wiphy(sdata->local->hw.wiphy);
+
+	ret = drv_add_btwt(local, sdata, settings);
+	if (!ret)
+		sdata->deflink.btwt_active_bitmap |= BIT(settings->id);
+
+	return ret;
+}
+
+static int
+ieee80211_del_btwt(struct wiphy *wiphy, struct net_device *dev, u8 id)
+{
+	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
+	struct ieee80211_local *local = sdata->local;
+	int ret;
+
+	lockdep_assert_wiphy(sdata->local->hw.wiphy);
+
+	ret =  drv_del_btwt(local, sdata, id);
+	if (!ret)
+		sdata->deflink.btwt_active_bitmap &= ~BIT(id);
+
+	return ret;
+}
+
 const struct cfg80211_ops mac80211_config_ops = {
 	.add_virtual_intf = ieee80211_add_iface,
 	.del_virtual_intf = ieee80211_del_iface,
@@ -5931,4 +5964,6 @@ const struct cfg80211_ops mac80211_config_ops = {
 	.assoc_ml_reconf = ieee80211_assoc_ml_reconf,
 	.set_epcs = ieee80211_set_epcs,
 	.skip_cac = ieee80211_skip_cac,
+	.add_btwt = ieee80211_add_btwt,
+	.del_btwt = ieee80211_del_btwt,
 };

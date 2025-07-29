@@ -2552,6 +2552,76 @@ TRACE_EVENT(drv_twt_teardown_request,
 	)
 );
 
+TRACE_EVENT(drv_add_btwt,
+	TP_PROTO(struct ieee80211_local *local,
+		 struct ieee80211_sub_if_data *sdata,
+		 struct cfg80211_broadcast_twt_settings *settings),
+
+	TP_ARGS(local, sdata, settings),
+
+	TP_STRUCT__entry(
+		LOCAL_ENTRY
+		VIF_ENTRY
+		__field(u8, id)
+		__field(u8, min_wake_dur)
+		__field(u16, wake_intv_mantissa)
+		__field(u8, wake_intv_exp)
+		__field(u8, setup_cmd)
+		__field(bool, trigger)
+		__field(bool, flow_type)
+		__field(u8, recommendation)
+		__field(u8, persist)
+	),
+
+	TP_fast_assign(
+		LOCAL_ASSIGN;
+		VIF_ASSIGN;
+		__entry->id = settings->id;
+		__entry->min_wake_dur = settings->min_wake_dur;
+		__entry->wake_intv_mantissa = settings->wake_intv_mantissa;
+		__entry->wake_intv_exp = settings->wake_intv_exp;
+		__entry->setup_cmd = settings->setup_cmd;
+		__entry->trigger = settings->trigger;
+		__entry->flow_type = settings->flow_type;
+		__entry->recommendation = settings->recommendation;
+		__entry->persist = settings->persist;
+	),
+
+	TP_printk(
+		LOCAL_PR_FMT VIF_PR_FMT " id=%u min_wake_dur=%u "
+		"wake_intv_mantissa=%u wake_intv_exp=%u setup_cmd=%u trigger=%u"
+		"flow_type=%u recommendation=%u persist=%u",
+		LOCAL_PR_ARG, VIF_PR_ARG, __entry->id, __entry->min_wake_dur,
+		__entry->wake_intv_mantissa, __entry->wake_intv_exp,
+		__entry->setup_cmd, __entry->trigger, __entry->flow_type,
+		__entry->recommendation, __entry->persist
+	)
+);
+
+TRACE_EVENT(drv_del_btwt,
+	TP_PROTO(struct ieee80211_local *local,
+		 struct ieee80211_sub_if_data *sdata, u8 id),
+
+	TP_ARGS(local, sdata, id),
+
+	TP_STRUCT__entry(
+		LOCAL_ENTRY
+		VIF_ENTRY
+		__field(u8, id)
+	),
+
+	TP_fast_assign(
+		LOCAL_ASSIGN;
+		VIF_ASSIGN;
+		__entry->id = id;
+	),
+
+	TP_printk(
+		LOCAL_PR_FMT VIF_PR_FMT " id=%u",
+		LOCAL_PR_ARG, VIF_PR_ARG, __entry->id
+	)
+);
+
 DEFINE_EVENT(sta_event, drv_net_fill_forward_path,
 	TP_PROTO(struct ieee80211_local *local,
 		 struct ieee80211_sub_if_data *sdata,

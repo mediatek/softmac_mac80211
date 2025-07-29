@@ -1364,6 +1364,13 @@
  * @NL80211_CMD_NOTIFY_CRIT_UPDATE: Notify the userspace that the status of a
  *	critical update event was changed.
  *
+ * @NL80211_CMD_ADD_BROADCAST_TWT: Setup a broadcast TWT service period on a AP.
+ *	The id, mantissa and exponent of wake interval and minimum wake duration
+ *	must be given.
+ *
+ * @NL80211_CMD_DEL_BROADCAST_TWT: Delete a broadcast TWT service period on a AP.
+ * 	The id of the to-be deleted service period must be specified.
+ *
  * @NL80211_CMD_MAX: highest used command number
  * @__NL80211_CMD_AFTER_LAST: internal use
  */
@@ -1635,6 +1642,8 @@ enum nl80211_commands {
 	NL80211_CMD_SET_STA_TTLM,
 	NL80211_CMD_NOTIFY_CRIT_UPDATE,
 	NL80211_CMD_TSF_OFFSET_EVENT,
+	NL80211_CMD_ADD_BROADCAST_TWT,
+	NL80211_CMD_DEL_BROADCAST_TWT,
 
 	/* used to define NL80211_CMD_MAX below */
 	__NL80211_CMD_AFTER_LAST,
@@ -3019,6 +3028,9 @@ enum nl80211_commands {
  * @NL80211_ATTR_DFS_STATE_UPDATE: Update the DFS state, especially when the radar
  *	detection is triggered by the offchain command.
  *
+ * @NL80211_ATTR_BROADCAST_TWT_PARAMS: Nested attribute for broadcast TWT
+ * 	service period parameters. See &enum nl80211_broadcast_twt_attributes.
+ *
  * @NUM_NL80211_ATTR: total number of nl80211_attrs available
  * @NL80211_ATTR_MAX: highest attribute number currently defined
  * @__NL80211_ATTR_AFTER_LAST: internal use
@@ -3610,6 +3622,7 @@ enum nl80211_attrs {
 	NL80211_ATTR_VENDOR_MTK_STA,
 
 	NL80211_ATTR_DFS_STATE_UPDATE,
+	NL80211_ATTR_BROADCAST_TWT_PARAMS,
 
 	__NL80211_ATTR_AFTER_LAST,
 	NUM_NL80211_ATTR = __NL80211_ATTR_AFTER_LAST,
@@ -8633,6 +8646,42 @@ enum nl80211_crit_update_event {
 	NL80211_CRIT_UPDATE_SINGLE,
 	NL80211_CRIT_UPDATE_ALL,
 	NL80211_CRIT_UPDATE_FLAG
+};
+
+/**
+ * enum nl80211_broadcast_twt_attributes - Parameters for a Broadcast TWT
+ *
+ * @NL80211_BROADCAST_TWT_ATTR_ID: Broadcast TWT ID. Range from 0 to 31.
+ * @NL80211_BROADCAST_TWT_ATTR_MIN_WAKE_DUR: Minimum wake duration.
+ * @NL80211_BROADCAST_TWT_ATTR_MANTISSA: Mantissa for wake interval
+ * @NL80211_BROADCAST_TWT_ATTR_EXPONENT: Exponent for wake interval
+ * @NL80211_BROADCAST_TWT_ATTR_TRIGGER: Decide a BTWT to be trigger based or
+ *	non-trigger based. 1 for trigger based.
+ * @NL80211_BROADCAST_TWT_ATTR_FLOW_TYPE: Decide a BTWT to be announced based or
+ *	non-announced based. 0 for announced based.
+ * @NL80211_BROADCAST_TWT_ATTR_RECOMMENDATION: Suggested data type by
+ * 	TWT scheduling AP.
+ * @NL80211_BROADCAST_TWT_ATTR_PERSISTENCE: Number of TBTT before this
+ * 	BTWT is end. Set 255 for a persist BTWT that never ends.
+ * @__NL80211_BROADCAST_TWT_ATTR_LAST: Internal
+ * @NL80211_BROADCAST_TWT_ATTR_MAX: Highest attribute
+ */
+
+enum nl80211_broadcast_twt_attributes {
+	__NL80211_BROADCAST_TWT_ATTR_INVALID,
+
+	NL80211_BROADCAST_TWT_ATTR_ID,
+	NL80211_BROADCAST_TWT_ATTR_MIN_WAKE_DUR,
+	NL80211_BROADCAST_TWT_ATTR_MANTISSA,
+	NL80211_BROADCAST_TWT_ATTR_EXPONENT,
+	NL80211_BROADCAST_TWT_ATTR_TRIGGER,
+	NL80211_BROADCAST_TWT_ATTR_FLOW_TYPE,
+	NL80211_BROADCAST_TWT_ATTR_RECOMMENDATION,
+	NL80211_BROADCAST_TWT_ATTR_PERSISTENCE,
+
+	/* keep last */
+	__NL80211_BROADCAST_TWT_ATTR_LAST,
+	NL80211_BROADCAST_TWT_ATTR_MAX = __NL80211_BROADCAST_TWT_ATTR_LAST - 1,
 };
 
 #endif /* __LINUX_NL80211_H */

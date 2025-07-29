@@ -1088,6 +1088,8 @@ struct ieee80211_link_data {
 	struct wiphy_delayed_work color_collision_detect_work;
 	u64 color_bitmap;
 
+	u32 btwt_active_bitmap;
+
 	/* context reservation -- protected with wiphy mutex */
 	struct ieee80211_chanctx *reserved_chanctx;
 	struct ieee80211_chan_req reserved;

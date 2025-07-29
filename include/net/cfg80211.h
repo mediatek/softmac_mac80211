@@ -306,6 +306,32 @@ struct ieee80211_rate {
 };
 
 /**
+ * struct cfg80211_broadcast_twt_settings - AP settings for broadcast TWT
+ *
+ * @id: broadcast TWT id
+ * @min_wake_dur: the min time that a TWT scheduled STA is expected to be awake
+ * @wake_intv_mantissa: mantissa part of wake interval
+ * @wake_intv_exp: exponential part of wake interval
+ * @setup_cmd: the type of TWT command
+ * @trigger: 0 for non-triggered and 1 for triggered
+ * @flow_type: 0 for announced and 1 for unannounced
+ * @recommendation: recommendations on the types of frames to be transmitted
+ * @persist: number of TBTTs during which the Broadcast TWT SPs corresponding
+ *	to this broadcast TWT Parameter set are present
+ */
+struct cfg80211_broadcast_twt_settings {
+	u8 id;
+	u8 min_wake_dur;
+	u16 wake_intv_mantissa;
+	u8 wake_intv_exp;
+	u8 setup_cmd;
+	bool trigger;
+	bool flow_type;
+	u8 recommendation;
+	u8 persist;
+};
+
+/**
  * struct ieee80211_he_obss_pd - AP settings for spatial reuse
  *
  * @enable: is the feature enabled.
@@ -4921,6 +4947,8 @@ struct mgmt_frame_regs {
  *	links by calling cfg80211_mlo_reconf_add_done(). When calling
  *	cfg80211_mlo_reconf_add_done() the bss pointer must be given for each
  *	link for which MLO reconfiguration 'add' operation was requested.
+ * @add_btwt: add a new Broadcast TWT service period
+ * @del_btwt: delete an existing Broadcast TWT service period
  */
 struct cfg80211_ops {
 	int	(*suspend)(struct wiphy *wiphy, struct cfg80211_wowlan *wow);
@@ -5302,6 +5330,9 @@ struct cfg80211_ops {
 	int	(*set_epcs)(struct wiphy *wiphy, struct net_device *dev,
 			    bool val);
 	void	(*skip_cac)(struct wireless_dev *wdev, unsigned int link_id);
+	int	(*add_btwt)(struct wiphy *wiphy, struct net_device *dev,
+			    struct cfg80211_broadcast_twt_settings *settings);
+	int	(*del_btwt)(struct wiphy *wiphy, struct net_device *dev, u8 id);
 };
 
 /*

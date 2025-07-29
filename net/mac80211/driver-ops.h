@@ -1672,6 +1672,43 @@ static inline void drv_twt_teardown_request(struct ieee80211_local *local,
 	trace_drv_return_void(local);
 }
 
+static inline int drv_add_btwt(struct ieee80211_local *local,
+			       struct ieee80211_sub_if_data *sdata,
+			       struct cfg80211_broadcast_twt_settings *settings)
+{
+	int ret = -EOPNOTSUPP;
+
+	might_sleep();
+	lockdep_assert_wiphy(local->hw.wiphy);
+	if (!check_sdata_in_driver(sdata))
+		return -EIO;
+
+	trace_drv_add_btwt(local, sdata, settings);
+	if (local->ops->add_btwt)
+		ret = local->ops->add_btwt(&local->hw, &sdata->vif, settings);
+	trace_drv_return_int(local, ret);
+
+	return ret;
+}
+
+static inline int drv_del_btwt(struct ieee80211_local *local,
+			       struct ieee80211_sub_if_data *sdata, u8 id)
+{
+	int ret = -EOPNOTSUPP;
+
+	might_sleep();
+	lockdep_assert_wiphy(local->hw.wiphy);
+	if (!check_sdata_in_driver(sdata))
+		return -EIO;
+
+	trace_drv_del_btwt(local, sdata, id);
+	if (local->ops->del_btwt)
+		ret = local->ops->del_btwt(&local->hw, &sdata->vif, id);
+	trace_drv_return_int(local, ret);
+
+	return ret;
+}
+
 static inline int drv_net_fill_forward_path(struct ieee80211_local *local,
 					    struct ieee80211_sub_if_data *sdata,
 					    struct ieee80211_sta *sta,

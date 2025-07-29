@@ -4977,6 +4977,9 @@ struct ieee80211_ops {
 			      struct ieee80211_twt_setup *twt);
 	void (*twt_teardown_request)(struct ieee80211_hw *hw,
 				     struct ieee80211_sta *sta, u8 flowid);
+	int (*add_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+			struct cfg80211_broadcast_twt_settings *btwt);
+	int (*del_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif, u8 id);
 	int (*set_radar_background)(struct ieee80211_hw *hw,
 				    struct cfg80211_chan_def *chandef);
 	int (*net_fill_forward_path)(struct ieee80211_hw *hw,

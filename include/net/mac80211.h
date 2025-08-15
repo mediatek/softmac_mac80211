@@ -4972,12 +4972,12 @@ struct ieee80211_ops {
 	void (*sta_set_decap_offload)(struct ieee80211_hw *hw,
 				      struct ieee80211_vif *vif,
 				      struct ieee80211_sta *sta, bool enabled);
-	void (*add_twt_setup)(struct ieee80211_hw *hw,
-			      struct ieee80211_sta *sta,
-			      struct ieee80211_twt_setup *twt);
-	void (*twt_teardown_request)(struct ieee80211_hw *hw,
-				     struct ieee80211_sta *sta,
-				     struct ieee80211_twt_teardown *td);
+	int (*add_twt_setup)(struct ieee80211_hw *hw,
+			     struct ieee80211_sta *sta,
+			     struct ieee80211_twt_setup *twt);
+	int (*twt_teardown_request)(struct ieee80211_hw *hw,
+				    struct ieee80211_sta *sta,
+				    struct ieee80211_twt_teardown *td);
 	int (*add_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 			struct cfg80211_broadcast_twt_settings *btwt);
 	int (*del_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif, u8 id);

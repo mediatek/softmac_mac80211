@@ -102,24 +102,18 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_twt_setup *twt = (void *)mgmt->u.action.u.s1g.variable;
 	struct ieee80211_twt_params *twt_agrt = (void *)twt->params;
 
-	twt_agrt->req_type &= cpu_to_le16(~IEEE80211_TWT_REQTYPE_REQUEST);
-	twt->control |= IEEE80211_TWT_CONTROL_RX_DISABLED;
-
-	/* broadcast TWT not supported yet */
-	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST) {
-		twt_agrt->req_type &=
-			~cpu_to_le16(IEEE80211_TWT_REQTYPE_SETUP_CMD);
-		twt_agrt->req_type |=
-			le16_encode_bits(TWT_SETUP_CMD_REJECT,
-					 IEEE80211_TWT_REQTYPE_SETUP_CMD);
-		goto out;
-	}
+	twt_agrt->req_type &= ~cpu_to_le16(IEEE80211_TWT_REQTYPE_REQUEST);
 
 	/* TWT Information not supported yet */
 	twt->control |= IEEE80211_TWT_CONTROL_RX_DISABLED;
 
-	drv_add_twt_setup(sdata->local, sdata, &sta->sta, twt);
-out:
+	if (drv_add_twt_setup(sdata->local, sdata, &sta->sta, twt)) {
+		twt_agrt->req_type &= ~cpu_to_le16(IEEE80211_TWT_REQTYPE_SETUP_CMD);
+		twt_agrt->req_type |=
+			le16_encode_bits(TWT_SETUP_CMD_REJECT,
+					 IEEE80211_TWT_REQTYPE_SETUP_CMD);
+	}
+
 	ieee80211_s1g_send_twt_setup(sdata, mgmt->sa, sdata->vif.addr, twt);
 }
 
@@ -128,9 +122,9 @@ ieee80211_s1g_rx_twt_teardown(struct ieee80211_sub_if_data *sdata,
 			      struct sta_info *sta, struct sk_buff *skb)
 {
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
+	struct ieee80211_twt_teardown *td = (void *)mgmt->u.action.u.s1g.variable;
 
-	drv_twt_teardown_request(sdata->local, sdata, &sta->sta,
-		(struct ieee80211_twt_teardown *) mgmt->u.action.u.s1g.variable);
+	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, td);
 }
 
 static void
@@ -142,8 +136,14 @@ ieee80211_s1g_tx_twt_setup_fail(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_twt_params *twt_agrt = (void *)twt->params;
 	struct ieee80211_twt_teardown td;
 
-	td.id = le16_get_bits(twt_agrt->req_type,
-			      IEEE80211_TWT_REQTYPE_FLOWID);
+	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST) {
+		td.id = le16_get_bits(twt_agrt->bcast.btwt_info,
+				      IEEE80211_BTWT_INFO_ID);
+		td.neg_type = IEEE80211_TWT_NEGO_TYPE_BTWT_MBR_MGMT;
+	} else {
+		td.id = le16_get_bits(twt_agrt->req_type,
+				      IEEE80211_TWT_REQTYPE_FLOWID);
+	}
 
 	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, &td);
 

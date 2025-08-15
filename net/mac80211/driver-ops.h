@@ -1634,42 +1634,49 @@ static inline void drv_sta_set_decap_offload(struct ieee80211_local *local,
 	trace_drv_return_void(local);
 }
 
-static inline void drv_add_twt_setup(struct ieee80211_local *local,
-				     struct ieee80211_sub_if_data *sdata,
-				     struct ieee80211_sta *sta,
-				     struct ieee80211_twt_setup *twt)
+static inline int drv_add_twt_setup(struct ieee80211_local *local,
+				    struct ieee80211_sub_if_data *sdata,
+				    struct ieee80211_sta *sta,
+				    struct ieee80211_twt_setup *twt)
 {
 	struct ieee80211_twt_params *twt_agrt;
+	int ret = -EINVAL;
 
 	might_sleep();
 	lockdep_assert_wiphy(local->hw.wiphy);
 
 	if (!check_sdata_in_driver(sdata))
-		return;
+		return ret;
 
 	twt_agrt = (void *)twt->params;
 
 	trace_drv_add_twt_setup(local, sta, twt, twt_agrt);
-	local->ops->add_twt_setup(&local->hw, sta, twt);
-	trace_drv_return_void(local);
+	ret = local->ops->add_twt_setup(&local->hw, sta, twt);
+	trace_drv_return_int(local, ret);
+
+	return ret;
 }
 
-static inline void drv_twt_teardown_request(struct ieee80211_local *local,
-					    struct ieee80211_sub_if_data *sdata,
-					    struct ieee80211_sta *sta,
-					    struct ieee80211_twt_teardown *td)
+static inline int drv_twt_teardown_request(struct ieee80211_local *local,
+					   struct ieee80211_sub_if_data *sdata,
+					   struct ieee80211_sta *sta,
+					   struct ieee80211_twt_teardown *td)
 {
+	int ret = -EINVAL;
+
 	might_sleep();
 	lockdep_assert_wiphy(local->hw.wiphy);
 	if (!check_sdata_in_driver(sdata))
-		return;
+		return ret;
 
 	if (!local->ops->twt_teardown_request)
-		return;
+		return ret;
 
 	trace_drv_twt_teardown_request(local, sta, td);
-	local->ops->twt_teardown_request(&local->hw, sta, td);
-	trace_drv_return_void(local);
+	ret = local->ops->twt_teardown_request(&local->hw, sta, td);
+	trace_drv_return_int(local, ret);
+
+	return ret;
 }
 
 static inline int drv_add_btwt(struct ieee80211_local *local,

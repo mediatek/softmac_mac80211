@@ -2607,6 +2607,7 @@ struct ieee80211_sta {
 	struct ieee80211_sta_aggregates *cur;
 
 	bool support_p2p_ps;
+	bool btwt;
 
 	struct ieee80211_txq *txq[IEEE80211_NUM_TIDS + 1];
 

@@ -1943,6 +1943,39 @@ static int ieee80211_stop_ap(struct wiphy *wiphy, struct net_device *dev,
 	return 0;
 }
 
+static int process_btwt_id_0(struct ieee80211_local *local,
+			     struct ieee80211_sub_if_data *sdata,
+			     struct sta_info *sta,
+			     bool add)
+{
+	int ret = -EINVAL;
+
+	if (!sta->sta.btwt)
+		return ret;
+
+	if (add) {
+		struct ieee80211_twt_setup *twt;
+
+		twt = kzalloc(sizeof(*twt) + sizeof(struct ieee80211_twt_params),
+			      GFP_KERNEL);
+		if (!twt)
+			return -ENOMEM;
+
+		twt->control |= IEEE80211_TWT_NEGO_TYPE_BTWT_MBR_MGMT << 2;
+		ret = drv_add_twt_setup(local, sdata, &sta->sta, twt);
+
+		kfree(twt);
+	} else {
+		struct ieee80211_twt_teardown td;
+
+		memset(&td, 0, sizeof(td));
+		td.neg_type = IEEE80211_TWT_NEGO_TYPE_BTWT_MBR_MGMT;
+		ret = drv_twt_teardown_request(local, sdata, &sta->sta, &td);
+	}
+
+	return ret;
+}
+
 static int sta_apply_auth_flags(struct ieee80211_local *local,
 				struct sta_info *sta,
 				u32 mask, u32 set)
@@ -2443,9 +2476,18 @@ static int ieee80211_add_station(struct wiphy *wiphy, struct net_device *dev,
 static int ieee80211_del_station(struct wiphy *wiphy, struct net_device *dev,
 				 struct station_del_parameters *params)
 {
+	struct ieee80211_local *local = wiphy_priv(wiphy);
 	struct ieee80211_sub_if_data *sdata;
 
 	sdata = IEEE80211_DEV_TO_SUB_IF(dev);
+
+	if (sdata->vif.type == NL80211_IFTYPE_AP &&
+	    sdata->deflink.btwt_active_bitmap & BIT(0)) {
+		struct sta_info *sta = sta_info_get_bss(sdata, params->mac);
+
+		if (sta)
+			process_btwt_id_0(local, sdata, sta, false);
+	}
 
 	if (params->mac)
 		return sta_info_destroy_addr_bss(sdata, params->mac);
@@ -2548,6 +2590,11 @@ static int ieee80211_change_station(struct wiphy *wiphy,
 		ieee80211_recalc_ps(local);
 		ieee80211_recalc_ps_vif(sdata);
 	}
+
+	if (sdata->vif.type == NL80211_IFTYPE_AP &&
+	    test_sta_flag(sta, WLAN_STA_AUTHORIZED) &&
+	    sdata->deflink.btwt_active_bitmap & BIT(0))
+		process_btwt_id_0(local, sdata, sta, true);
 
 	return 0;
 }

@@ -46,10 +46,20 @@ enum ieee80211_twt_setup_cmd {
 
 struct ieee80211_twt_params {
 	__le16 req_type;
-	__le64 twt;
-	u8 min_twt_dur;
-	__le16 mantissa;
-	u8 channel;
+	union {
+		struct {
+			__le64 twt;
+			u8 min_twt_dur;
+			__le16 mantissa;
+			u8 channel;
+		} __packed indiv;
+		struct {
+			__le16 twt;
+			u8 min_twt_dur;
+			__le16 mantissa;
+			__le16 btwt_info;
+		} __packed bcast;
+	};
 } __packed;
 
 struct ieee80211_twt_setup {

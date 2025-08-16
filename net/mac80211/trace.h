@@ -2511,10 +2511,10 @@ TRACE_EVENT(drv_add_twt_setup,
 		__entry->dialog_token = twt->dialog_token;
 		__entry->control = twt->control;
 		__entry->req_type = twt_agrt->req_type;
-		__entry->twt = twt_agrt->twt;
-		__entry->duration = twt_agrt->min_twt_dur;
-		__entry->mantissa = twt_agrt->mantissa;
-		__entry->channel = twt_agrt->channel;
+		__entry->twt = twt_agrt->indiv.twt;
+		__entry->duration = twt_agrt->indiv.min_twt_dur;
+		__entry->mantissa = twt_agrt->indiv.mantissa;
+		__entry->channel = twt_agrt->indiv.channel;
 	),
 
 	TP_printk(

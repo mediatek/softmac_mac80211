@@ -124,6 +124,9 @@ ieee80211_s1g_rx_twt_teardown(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 	struct ieee80211_twt_teardown *td = (void *)mgmt->u.action.u.s1g.variable;
 
+	if (td->all)
+		return; /* Not supported yet */
+
 	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, td);
 }
 

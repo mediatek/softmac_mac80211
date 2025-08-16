@@ -70,6 +70,12 @@ struct ieee80211_twt_setup {
 	u8 params[];
 } __packed;
 
+struct ieee80211_twt_teardown {
+	u8 id:5;
+	u8 neg_type:2;
+	u8 all:1;
+} __packed;
+
 /**
  * struct ieee80211_he_cap_elem - HE capabilities element
  * @mac_cap_info: HE MAC Capabilities Information

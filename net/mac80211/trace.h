@@ -2530,9 +2530,10 @@ TRACE_EVENT(drv_add_twt_setup,
 
 TRACE_EVENT(drv_twt_teardown_request,
 	TP_PROTO(struct ieee80211_local *local,
-		 struct ieee80211_sta *sta, u8 flowid),
+		 struct ieee80211_sta *sta,
+		 struct ieee80211_twt_teardown *td),
 
-	TP_ARGS(local, sta, flowid),
+	TP_ARGS(local, sta, td),
 
 	TP_STRUCT__entry(
 		LOCAL_ENTRY
@@ -2543,7 +2544,7 @@ TRACE_EVENT(drv_twt_teardown_request,
 	TP_fast_assign(
 		LOCAL_ASSIGN;
 		STA_ASSIGN;
-		__entry->flowid = flowid;
+		__entry->flowid = td->id;
 	),
 
 	TP_printk(

@@ -63,7 +63,8 @@ ieee80211_s1g_send_twt_setup(struct ieee80211_sub_if_data *sdata, const u8 *da,
 
 static void
 ieee80211_s1g_send_twt_teardown(struct ieee80211_sub_if_data *sdata,
-				const u8 *da, const u8 *bssid, u8 flowid)
+				const u8 *da, const u8 *bssid,
+				struct ieee80211_twt_teardown *td)
 {
 	struct ieee80211_local *local = sdata->local;
 	struct ieee80211_mgmt *mgmt;
@@ -86,7 +87,7 @@ ieee80211_s1g_send_twt_teardown(struct ieee80211_sub_if_data *sdata,
 	mgmt->u.action.category = WLAN_CATEGORY_S1G;
 	mgmt->u.action.u.s1g.action_code = WLAN_S1G_TWT_TEARDOWN;
 	id = (u8 *)mgmt->u.action.u.s1g.variable;
-	*id = flowid;
+	*id = td->id;
 
 	IEEE80211_SKB_CB(skb)->flags |= IEEE80211_TX_INTFL_DONT_ENCRYPT |
 					IEEE80211_TX_CTL_REQ_TX_STATUS;
@@ -129,7 +130,7 @@ ieee80211_s1g_rx_twt_teardown(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 
 	drv_twt_teardown_request(sdata->local, sdata, &sta->sta,
-				 mgmt->u.action.u.s1g.variable[0]);
+		(struct ieee80211_twt_teardown *) mgmt->u.action.u.s1g.variable);
 }
 
 static void
@@ -139,13 +140,14 @@ ieee80211_s1g_tx_twt_setup_fail(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 	struct ieee80211_twt_setup *twt = (void *)mgmt->u.action.u.s1g.variable;
 	struct ieee80211_twt_params *twt_agrt = (void *)twt->params;
-	u8 flowid = le16_get_bits(twt_agrt->req_type,
-				  IEEE80211_TWT_REQTYPE_FLOWID);
+	struct ieee80211_twt_teardown td;
 
-	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, flowid);
+	td.id = le16_get_bits(twt_agrt->req_type,
+			      IEEE80211_TWT_REQTYPE_FLOWID);
 
-	ieee80211_s1g_send_twt_teardown(sdata, mgmt->sa, sdata->vif.addr,
-					flowid);
+	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, &td);
+
+	ieee80211_s1g_send_twt_teardown(sdata, mgmt->sa, sdata->vif.addr, &td);
 }
 
 void ieee80211_s1g_rx_twt_action(struct ieee80211_sub_if_data *sdata,

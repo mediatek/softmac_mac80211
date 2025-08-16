@@ -1657,7 +1657,7 @@ static inline void drv_add_twt_setup(struct ieee80211_local *local,
 static inline void drv_twt_teardown_request(struct ieee80211_local *local,
 					    struct ieee80211_sub_if_data *sdata,
 					    struct ieee80211_sta *sta,
-					    u8 flowid)
+					    struct ieee80211_twt_teardown *td)
 {
 	might_sleep();
 	lockdep_assert_wiphy(local->hw.wiphy);
@@ -1667,8 +1667,8 @@ static inline void drv_twt_teardown_request(struct ieee80211_local *local,
 	if (!local->ops->twt_teardown_request)
 		return;
 
-	trace_drv_twt_teardown_request(local, sta, flowid);
-	local->ops->twt_teardown_request(&local->hw, sta, flowid);
+	trace_drv_twt_teardown_request(local, sta, td);
+	local->ops->twt_teardown_request(&local->hw, sta, td);
 	trace_drv_return_void(local);
 }
 

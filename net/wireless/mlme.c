@@ -1257,7 +1257,8 @@ EXPORT_SYMBOL(cfg80211_background_cac_abort);
 int
 cfg80211_start_background_radar_detection(struct cfg80211_registered_device *rdev,
 					  struct wireless_dev *wdev,
-					  struct cfg80211_chan_def *chandef)
+					  struct cfg80211_chan_def *chandef,
+					  bool update)
 {
 	unsigned int cac_time_ms;
 	int err;
@@ -1276,6 +1277,9 @@ cfg80211_start_background_radar_detection(struct cfg80211_registered_device *rde
 	if (rdev->background_radar_wdev == wdev &&
 	    delayed_work_pending(&rdev->background_cac_done_wk))
 		return -EBUSY;
+
+	if (update)
+		cfg80211_sched_dfs_chan_update(rdev);
 
 	err = rdev_set_radar_background(rdev, chandef);
 	if (err)

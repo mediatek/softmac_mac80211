@@ -927,6 +927,7 @@ static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 			NLA_POLICY_NESTED(nl80211_mbssid_config_policy),
 	[NL80211_ATTR_MBSSID_ELEMS] = { .type = NLA_NESTED },
 	[NL80211_ATTR_RADAR_BACKGROUND] = { .type = NLA_FLAG },
+	[NL80211_ATTR_DFS_STATE_UPDATE] = { .type = NLA_FLAG },
 	[NL80211_ATTR_AP_SETTINGS_FLAGS] = { .type = NLA_U32 },
 	[NL80211_ATTR_EHT_CAPABILITY] =
 		NLA_POLICY_BINARY_RANGE(NL80211_EHT_MIN_CAPABILITY_LEN, NL80211_EHT_MAX_CAPABILITY_LEN),
@@ -11374,9 +11375,12 @@ static int nl80211_start_radar_detection(struct sk_buff *skb,
 	if (!cfg80211_chandef_dfs_usable(wiphy, &chandef))
 		return -EINVAL;
 
-	if (nla_get_flag(info->attrs[NL80211_ATTR_RADAR_BACKGROUND]))
+	if (nla_get_flag(info->attrs[NL80211_ATTR_RADAR_BACKGROUND])) {
+		bool update = nla_get_flag(info->attrs[NL80211_ATTR_DFS_STATE_UPDATE]);
+
 		return cfg80211_start_background_radar_detection(rdev, wdev,
-								 &chandef);
+								 &chandef, update);
+	}
 
 	if (cfg80211_beaconing_iface_active(wdev)) {
 		/* During MLO other link(s) can beacon, only the current link

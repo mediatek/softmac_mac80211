@@ -2960,6 +2960,9 @@ enum nl80211_commands {
  * @NL80211_ATTR_CRTI_UPDATE_EVENT: Type of critical update event for notification
  *	to userspace, contains a value of enum nl80211_crit_update_event (u8).
  *
+ * @NL80211_ATTR_DFS_STATE_UPDATE: Update the DFS state, especially when the radar
+ *	detection is triggered by the offchain command.
+ *
  * @NUM_NL80211_ATTR: total number of nl80211_attrs available
  * @NL80211_ATTR_MAX: highest attribute number currently defined
  * @__NL80211_ATTR_AFTER_LAST: internal use
@@ -3538,6 +3541,8 @@ enum nl80211_attrs {
 	NL80211_ATTR_MLO_TSF_OFFSET_VAL,
 
 	NL80211_ATTR_VENDOR_MTK_STA,
+
+	NL80211_ATTR_DFS_STATE_UPDATE,
 
 	__NL80211_ATTR_AFTER_LAST,
 	NUM_NL80211_ATTR = __NL80211_ATTR_AFTER_LAST,

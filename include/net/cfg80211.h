@@ -5799,10 +5799,12 @@ struct wiphy_iftype_akm_suites {
  * @radio_debugfsdir: Pointer to debugfs directory containing the radio-
  *	specific parameters.
  *	NULL (default) = Debugfs directory not created
+ * @tx_power_level: txpower configured on this radio (dBm)
  */
 struct wiphy_radio_cfg {
 	u32 rts_threshold;
 	struct dentry *radio_debugfsdir;
+	int tx_power_level;
 };
 
 /**

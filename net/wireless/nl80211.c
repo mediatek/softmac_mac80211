@@ -3950,7 +3950,12 @@ static int nl80211_set_wiphy(struct sk_buff *skb, struct genl_info *info)
 		if (radio_idx >= rdev->wiphy.n_radio)
 			return -EINVAL;
 
-		return nl80211_set_wiphy_radio(info, rdev, radio_idx);
+		result = nl80211_set_wiphy_radio(info, rdev, radio_idx);
+		if (result)
+			return result;
+
+		if (!info->attrs[NL80211_ATTR_WIPHY_TX_POWER_SETTING])
+			return 0;
 	}
 
 	if (info->attrs[NL80211_ATTR_WIPHY_TXQ_PARAMS]) {
@@ -4024,12 +4029,16 @@ static int nl80211_set_wiphy(struct sk_buff *skb, struct genl_info *info)
 		struct wireless_dev *txp_wdev = wdev;
 		enum nl80211_tx_power_setting type;
 		int idx, mbm = 0;
+		struct wiphy_radio_cfg *rcfg;
 
 		if (!(rdev->wiphy.features & NL80211_FEATURE_VIF_TXPOWER))
 			txp_wdev = NULL;
 
 		if (!rdev->ops->set_tx_power)
 			return -EOPNOTSUPP;
+
+		if (!txp_wdev && rdev->wiphy.n_radio && radio_idx == -1)
+			return -EINVAL;
 
 		idx = NL80211_ATTR_WIPHY_TX_POWER_SETTING;
 		type = nla_get_u32(info->attrs[idx]);
@@ -4043,10 +4052,17 @@ static int nl80211_set_wiphy(struct sk_buff *skb, struct genl_info *info)
 			mbm = nla_get_u32(info->attrs[idx]);
 		}
 
+		if (rdev->wiphy.n_radio) {
+			rcfg = &rdev->wiphy.radio_cfg[radio_idx];
+			rcfg->tx_power_level = MBM_TO_DBM(mbm);
+		}
+
 		result = rdev_set_tx_power(rdev, txp_wdev, radio_idx, type,
 					   mbm);
-		if (result)
+		if (result) {
+			rcfg->tx_power_level = 0;
 			return result;
+		}
 	}
 
 	if (info->attrs[NL80211_ATTR_WIPHY_ANTENNA_TX] &&

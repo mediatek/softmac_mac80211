@@ -3288,7 +3288,8 @@ static int ieee80211_set_tx_power(struct wiphy *wiphy,
 		return 0;
 	}
 
-	local->user_power_level = user_power_level;
+	if (!wiphy->n_radio)
+		local->user_power_level = user_power_level;
 
 	list_for_each_entry(sdata, &local->interfaces, list) {
 		if (sdata->vif.type == NL80211_IFTYPE_MONITOR &&
@@ -3302,11 +3303,17 @@ static int ieee80211_set_tx_power(struct wiphy *wiphy,
 		     link_id++) {
 			struct ieee80211_link_data *link =
 				wiphy_dereference(wiphy, sdata->link[link_id]);
+			struct ieee80211_chanctx_conf *chanctx_conf;
 
 			if (!link)
 				continue;
 
-			link->user_power_level = local->user_power_level;
+			chanctx_conf = sdata_dereference(link->conf->chanctx_conf,
+							 sdata);
+			if (!chanctx_conf || radio_idx != chanctx_conf->radio_idx)
+				continue;
+
+			link->user_power_level = user_power_level;
 			if (txp_type != link->conf->txpower_type)
 				update_txp_type = true;
 			link->conf->txpower_type = txp_type;
@@ -3322,8 +3329,14 @@ static int ieee80211_set_tx_power(struct wiphy *wiphy,
 		     link_id++) {
 			struct ieee80211_link_data *link =
 				wiphy_dereference(wiphy, sdata->link[link_id]);
+			struct ieee80211_chanctx_conf *chanctx_conf;
 
 			if (!link)
+				continue;
+
+			chanctx_conf = sdata_dereference(link->conf->chanctx_conf,
+							 sdata);
+			if (!chanctx_conf || radio_idx != chanctx_conf->radio_idx)
 				continue;
 
 			ieee80211_recalc_txpower(link, update_txp_type);

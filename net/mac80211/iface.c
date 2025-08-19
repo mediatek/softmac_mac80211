@@ -46,6 +46,7 @@ static void ieee80211_iface_work(struct wiphy *wiphy, struct wiphy_work *work);
 
 bool __ieee80211_recalc_txpower(struct ieee80211_link_data *link)
 {
+	struct wiphy *wiphy = link->sdata->local->hw.wiphy;
 	struct ieee80211_chanctx_conf *chanctx_conf;
 	int power;
 
@@ -57,6 +58,13 @@ bool __ieee80211_recalc_txpower(struct ieee80211_link_data *link)
 	}
 
 	power = ieee80211_chandef_max_power(&chanctx_conf->def);
+	if (wiphy->n_radio) {
+		int radio_idx = chanctx_conf->radio_idx;
+		const struct wiphy_radio_cfg *rcfg = &wiphy->radio_cfg[radio_idx];
+
+		if (rcfg->tx_power_level)
+			power = min(power, rcfg->tx_power_level);
+	}
 	rcu_read_unlock();
 
 	if (link->user_power_level != IEEE80211_UNSET_POWER_LEVEL)

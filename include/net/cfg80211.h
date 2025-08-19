@@ -5615,9 +5615,11 @@ struct wiphy_iftype_akm_suites {
  *
  * @rts_threshold: RTS threshold (dot11RTSThreshold);
  *	-1 (default) = RTS/CTS disabled
+ * @tx_power_level: txpower configured on this radio (dBm)
  */
 struct wiphy_radio_cfg {
 	u32 rts_threshold;
+	int tx_power_level;
 };
 
 /**

@@ -1041,6 +1041,15 @@ mwifiex_tx_timeout(struct net_device *dev, unsigned int txqueue)
 		priv->adapter->if_ops.card_reset(priv->adapter);
 	}
 }
+#if LINUX_VERSION_IS_LESS(5,6,0)
+/* Just declare it here to keep sparse happy */
+void bp_mwifiex_tx_timeout(struct net_device *dev);
+void bp_mwifiex_tx_timeout(struct net_device *dev)
+{
+	mwifiex_tx_timeout(dev, 0);
+}
+EXPORT_SYMBOL_GPL(bp_mwifiex_tx_timeout);
+#endif
 
 void mwifiex_multi_chan_resync(struct mwifiex_adapter *adapter)
 {
@@ -1293,7 +1302,12 @@ static const struct net_device_ops mwifiex_netdev_ops = {
 	.ndo_start_xmit = mwifiex_hard_start_xmit,
 	.ndo_set_mac_address = mwifiex_ndo_set_mac_address,
 	.ndo_validate_addr = eth_validate_addr,
+#if LINUX_VERSION_IS_GEQ(5,6,0)
 	.ndo_tx_timeout = mwifiex_tx_timeout,
+#else
+	.ndo_tx_timeout = bp_mwifiex_tx_timeout,
+#endif
+	
 	.ndo_get_stats = mwifiex_get_stats,
 	.ndo_set_rx_mode = mwifiex_set_multicast_list,
 	.ndo_select_queue = mwifiex_netdev_select_wmm_queue,
@@ -1649,11 +1663,7 @@ static void mwifiex_probe_of(struct mwifiex_adapter *adapter)
 
 	ret = devm_request_irq(dev, adapter->irq_wakeup,
 			       mwifiex_irq_wakeup_handler,
-#ifndef IRQF_NO_AUTOEN
-			       IRQF_TRIGGER_LOW,
-#else
 			       IRQF_TRIGGER_LOW | IRQF_NO_AUTOEN,
-#endif
 			       "wifi_wake", adapter);
 	if (ret) {
 		dev_err(dev, "Failed to request irq_wakeup %d (%d)\n",
@@ -1661,9 +1671,6 @@ static void mwifiex_probe_of(struct mwifiex_adapter *adapter)
 		goto err_exit;
 	}
 
-#ifndef IRQF_NO_AUTOEN
-	disable_irq(adapter->irq_wakeup);
-#endif
 	if (device_init_wakeup(dev, true)) {
 		dev_err(dev, "fail to init wakeup for mwifiex\n");
 		goto err_exit;

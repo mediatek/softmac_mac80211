@@ -5830,6 +5830,15 @@ static void ipw2100_tx_timeout(struct net_device *dev, unsigned int txqueue)
 		       dev->name);
 	schedule_reset(priv);
 }
+#if LINUX_VERSION_IS_LESS(5,6,0)
+/* Just declare it here to keep sparse happy */
+void bp_ipw2100_tx_timeout(struct net_device *dev);
+void bp_ipw2100_tx_timeout(struct net_device *dev)
+{
+	ipw2100_tx_timeout(dev, 0);
+}
+EXPORT_SYMBOL_GPL(bp_ipw2100_tx_timeout);
+#endif
 
 static int ipw2100_wpa_enable(struct ipw2100_priv *priv, int value)
 {
@@ -5991,7 +6000,12 @@ static const struct net_device_ops ipw2100_netdev_ops = {
 	.ndo_open		= ipw2100_open,
 	.ndo_stop		= ipw2100_close,
 	.ndo_start_xmit		= libipw_xmit,
+#if LINUX_VERSION_IS_GEQ(5,6,0)
 	.ndo_tx_timeout		= ipw2100_tx_timeout,
+#else
+	.ndo_tx_timeout = bp_ipw2100_tx_timeout,
+#endif
+	
 	.ndo_set_mac_address	= ipw2100_set_address,
 	.ndo_validate_addr	= eth_validate_addr,
 };

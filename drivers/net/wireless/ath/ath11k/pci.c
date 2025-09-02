@@ -37,7 +37,7 @@ static const struct pci_device_id ath11k_pci_id_table[] = {
 	{ PCI_VDEVICE(QCOM, QCA6390_DEVICE_ID) },
 	{ PCI_VDEVICE(QCOM, WCN6855_DEVICE_ID) },
 	{ PCI_VDEVICE(QCOM, QCN9074_DEVICE_ID) },
-	{0}
+	{}
 };
 
 MODULE_DEVICE_TABLE(pci, ath11k_pci_id_table);
@@ -457,7 +457,11 @@ static int ath11k_pci_alloc_msi(struct ath11k_pci *ab_pci)
 	pci_read_config_dword(pci_dev, pci_dev->msi_cap + PCI_MSI_ADDRESS_LO,
 			      &ab->pci.msi.addr_lo);
 
+#if LINUX_VERSION_IS_GEQ(5,17,0)
 	if (msi_desc->pci.msi_attrib.is_64) {
+#else
+	if (msi_desc->msi_attrib.is_64) {
+#endif
 		pci_read_config_dword(pci_dev, pci_dev->msi_cap + PCI_MSI_ADDRESS_HI,
 				      &ab->pci.msi.addr_hi);
 	} else {
@@ -692,7 +696,7 @@ static void ath11k_pci_coredump_download(struct ath11k_base *ab)
 	struct ath11k_tlv_dump_data *dump_tlv;
 	size_t hdr_len = sizeof(*file_data);
 	void *buf;
-	u32 dump_seg_sz[FW_CRASH_DUMP_TYPE_MAX] = { 0 };
+	u32 dump_seg_sz[FW_CRASH_DUMP_TYPE_MAX] = {};
 
 	ath11k_mhi_coredump(mhi_ctrl, false);
 

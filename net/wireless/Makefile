@@ -29,8 +29,8 @@ $(obj)/shipped-certs.c: $(sort $(wildcard $(src)/certs/*.hex))
 	  echo 'unsigned int shipped_regdb_certs_len = sizeof(shipped_regdb_certs);'; \
 	 ) > $@
 
-$(obj)/extra-certs.c: $(CPTCFG_CFG80211_EXTRA_REGDB_KEYDIR) \
-		      $(sort $(wildcard $(CPTCFG_CFG80211_EXTRA_REGDB_KEYDIR)/*.x509))
+$(obj)/extra-certs.c: $(CPTCFG_CFG80211_EXTRA_REGDB_KEYDIR:"%"=%) \
+		      $(sort $(wildcard $(CPTCFG_CFG80211_EXTRA_REGDB_KEYDIR:"%"=%)/*.x509))
 	@$(kecho) "  GEN     $@"
 	$(Q)(set -e; \
 	  allf=""; \

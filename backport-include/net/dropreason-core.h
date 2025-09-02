@@ -13,6 +13,11 @@
 
 #include <linux/version.h>
 
+#if LINUX_VERSION_IS_LESS(5,5,0)
+#define SKB_DROP_REASON_NOT_SPECIFIED 2
+#define SKB_DROP_REASON_MAX 69
+#endif
+
 #if LINUX_VERSION_IS_LESS(5,18,0)
 #define SKB_NOT_DROPPED_YET SKB_DROP_REASON_MAX
 #endif

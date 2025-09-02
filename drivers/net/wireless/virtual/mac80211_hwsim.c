@@ -1229,11 +1229,6 @@ static void mac80211_hwsim_set_tsf(struct ieee80211_hw *hw,
 	/* MLD not supported here */
 	u32 bcn_int = data->link_data[0].beacon_int;
 	u64 delta = abs(tsf - now);
-	struct ieee80211_bss_conf *conf;
-
-	conf = link_conf_dereference_protected(vif, data->link_data[0].link_id);
-	if (conf && !conf->enable_beacon)
-		return;
 
 	/* adjust after beaconing with new timestamp at old TBTT */
 	if (tsf > now) {
@@ -2278,7 +2273,7 @@ static void mac80211_hwsim_beacon_tx(void *arg, u8 *mac,
 {
 	struct mac80211_hwsim_link_data *link_data = arg;
 	u32 link_id = link_data->link_id;
-	struct ieee80211_bss_conf *link_conf, *tx_bss_conf;
+	struct ieee80211_bss_conf *link_conf;
 	struct mac80211_hwsim_data *data =
 		container_of(link_data, struct mac80211_hwsim_data,
 			     link_data[link_id]);
@@ -2297,11 +2292,10 @@ static void mac80211_hwsim_beacon_tx(void *arg, u8 *mac,
 	    vif->type != NL80211_IFTYPE_OCB)
 		return;
 
-	tx_bss_conf = rcu_access_pointer(link_conf->tx_bss_conf);
-	if (tx_bss_conf && tx_bss_conf != link_conf)
+	if (vif->mbssid_tx_vif && vif->mbssid_tx_vif != vif)
 		return;
 
-	if (link_conf->ema_ap) {
+	if (vif->bss_conf.ema_ap) {
 		struct ieee80211_ema_beacons *ema;
 		u8 i = 0;
 
@@ -5353,7 +5347,6 @@ static int mac80211_hwsim_new_radio(struct genl_info *info,
 	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
 	ieee80211_hw_set(hw, TDLS_WIDER_BW);
 	ieee80211_hw_set(hw, SUPPORTS_MULTI_BSSID);
-	ieee80211_hw_set(hw, STRICT);
 
 	if (param->mlo) {
 		hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_MLO;
@@ -5557,8 +5550,10 @@ static int mac80211_hwsim_new_radio(struct genl_info *info,
 	wiphy_ext_feature_set(hw->wiphy, NL80211_EXT_FEATURE_CQM_RSSI_LIST);
 
 	for (i = 0; i < ARRAY_SIZE(data->link_data); i++) {
-		hrtimer_setup(&data->link_data[i].beacon_timer, mac80211_hwsim_beacon,
-			      CLOCK_MONOTONIC, HRTIMER_MODE_ABS_SOFT);
+		hrtimer_init(&data->link_data[i].beacon_timer, CLOCK_MONOTONIC,
+			     HRTIMER_MODE_ABS_SOFT);
+		data->link_data[i].beacon_timer.function =
+			mac80211_hwsim_beacon;
 		data->link_data[i].link_id = i;
 	}
 
@@ -6445,7 +6440,10 @@ static struct genl_family hwsim_genl_family __ro_after_init = {
 	.module = THIS_MODULE,
 	.small_ops = hwsim_ops,
 	.n_small_ops = ARRAY_SIZE(hwsim_ops),
-	.resv_start_op = HWSIM_CMD_REPORT_PMSR + 1, // match with __HWSIM_CMD_MAX
+#if LINUX_VERSION_IS_GEQ(6,1,0)
+	.resv_start_op = HWSIM_CMD_REPORT_PMSR + 1,
+#endif
+ // match with __HWSIM_CMD_MAX
 	.mcgrps = hwsim_mcgrps,
 	.n_mcgrps = ARRAY_SIZE(hwsim_mcgrps),
 };

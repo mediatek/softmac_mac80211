@@ -20,6 +20,10 @@ config RTW89_PCI
 	tristate
 	depends on m
 
+config RTW89_USB
+	tristate
+	depends on m
+
 config RTW89_8851B
 	tristate
 	depends on m
@@ -60,6 +64,18 @@ config RTW89_8851BE
 
 	  802.11ax PCIe wireless network (Wi-Fi 6) adapter
 
+config RTW89_8851BU
+	tristate "Realtek 8851BU USB wireless network (Wi-Fi 6) adapter"
+	depends on m
+	depends on USB
+	select RTW89_CORE
+	select RTW89_USB
+	select RTW89_8851B
+	help
+	  Select this option will enable support for 8851BU chipset
+
+	  802.11ax USB wireless network (Wi-Fi 6) adapter
+
 config RTW89_8852AE
 	tristate "Realtek 8852AE PCI wireless network (Wi-Fi 6) adapter"
 	depends on m
@@ -84,6 +100,19 @@ config RTW89_8852BE
 	  Select this option will enable support for 8852BE chipset
 
 	  802.11ax PCIe wireless network (Wi-Fi 6) adapter
+
+config RTW89_8852BU
+	tristate "Realtek 8852BU USB wireless network (Wi-Fi 6) adapter"
+	depends on m
+	depends on USB
+	select RTW89_CORE
+	select RTW89_USB
+	select RTW89_8852B
+	select RTW89_8852B_COMMON
+	help
+	  Select this option will enable support for 8852BU chipset
+
+	  802.11ax USB wireless network (Wi-Fi 6) adapter
 
 config RTW89_8852BTE
 	tristate "Realtek 8852BE-VT PCI wireless network (Wi-Fi 6) adapter"

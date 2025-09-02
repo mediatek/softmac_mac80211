@@ -198,23 +198,23 @@ int genlmsg_multicast(const struct genl_family *family,
 }
 EXPORT_SYMBOL_GPL(genlmsg_multicast);
 
-static int genlmsg_mcast(struct sk_buff *skb, u32 portid, unsigned long group)
+static int genlmsg_mcast(struct sk_buff *skb, u32 portid, unsigned long group,
+			 gfp_t flags)
 {
 	struct sk_buff *tmp;
 	struct net *net, *prev = NULL;
 	bool delivered = false;
 	int err;
 
-	rcu_read_lock();
 	for_each_net_rcu(net) {
 		if (prev) {
-			tmp = skb_clone(skb, GFP_ATOMIC);
+			tmp = skb_clone(skb, flags);
 			if (!tmp) {
 				err = -ENOMEM;
 				goto error;
 			}
 			err = nlmsg_multicast(prev->genl_sock, tmp,
-					      portid, group, GFP_ATOMIC);
+					      portid, group, flags);
 			if (!err)
 				delivered = true;
 			else if (err != -ESRCH)
@@ -223,29 +223,25 @@ static int genlmsg_mcast(struct sk_buff *skb, u32 portid, unsigned long group)
 
 		prev = net;
 	}
-	err = nlmsg_multicast(prev->genl_sock, skb, portid, group, GFP_ATOMIC);
 
-	rcu_read_unlock();
-
+	err = nlmsg_multicast(prev->genl_sock, skb, portid, group, flags);
 	if (!err)
 		delivered = true;
 	else if (err != -ESRCH)
 		return err;
 	return delivered ? 0 : -ESRCH;
  error:
-	rcu_read_unlock();
-
 	kfree_skb(skb);
 	return err;
 }
 
 int backport_genlmsg_multicast_allns(const struct genl_family *family,
 				     struct sk_buff *skb, u32 portid,
-				     unsigned int group)
+				     unsigned int group, gfp_t flags)
 {
 	group = __backport_genl_group(family, group);
 	if (group == INVALID_GROUP)
 		return -EINVAL;
-	return genlmsg_mcast(skb, portid, group);
+	return genlmsg_mcast(skb, portid, group, flags);
 }
 EXPORT_SYMBOL_GPL(backport_genlmsg_multicast_allns);

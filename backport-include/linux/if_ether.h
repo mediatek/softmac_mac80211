@@ -61,8 +61,9 @@
 #define ETH_MAX_MTU	0xFFFFU
 #endif
 
-#ifndef MAC_ADDR_STR_LEN
+#if LINUX_VERSION_IS_LESS(6,15,0)
+/* XX:XX:XX:XX:XX:XX */
 #define MAC_ADDR_STR_LEN (3 * ETH_ALEN - 1)
-#endif
+#endif /* <= 6.15 */
 
 #endif /* __BACKPORT_IF_ETHER_H */

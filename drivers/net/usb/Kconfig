@@ -126,9 +126,8 @@ config USB_LAN78XX
 	tristate "Microchip LAN78XX Based USB Ethernet Adapters"
 	depends on m
 	depends on MII
-	depends on PHYLIB
+	depends on PHYLINK
 	depends on MICROCHIP_PHY
-	depends on FIXED_PHY
 	depends on CRC32
 	help
 	  This option adds support for Microchip LAN78XX based USB 2

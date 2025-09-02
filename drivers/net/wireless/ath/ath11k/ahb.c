@@ -988,7 +988,7 @@ static int ath11k_ahb_fw_resources_init(struct ath11k_base *ab)
 {
 	struct ath11k_ahb *ab_ahb = ath11k_ahb_priv(ab);
 	struct device *host_dev = ab->dev;
-	struct platform_device_info info = {0};
+	struct platform_device_info info = {};
 	struct iommu_domain *iommu_dom;
 	struct platform_device *pdev;
 	struct device_node *node;
@@ -1314,25 +1314,13 @@ free_resources:
 	ath11k_ahb_free_resources(ab);
 }
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_ath11k_ahb_remove(struct platform_device *pdev) {
-	ath11k_ahb_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver ath11k_ahb_driver = {
 	.driver = {
 		.name = "ath11k",
 		.of_match_table = ath11k_ahb_of_match,
 	},
 	.probe = ath11k_ahb_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove = ath11k_ahb_remove,
-#else
-	.remove = bp_ath11k_ahb_remove,
-#endif
-	
 	.shutdown = ath11k_ahb_shutdown,
 };
 

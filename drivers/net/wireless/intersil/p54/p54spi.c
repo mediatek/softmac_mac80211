@@ -624,20 +624,12 @@ static int p54spi_probe(struct spi_device *spi)
 	gpio_direction_input(p54spi_gpio_irq);
 
 	ret = request_irq(gpio_to_irq(p54spi_gpio_irq),
-#ifndef IRQF_NO_AUTOEN
-			  p54spi_interrupt, 0, "p54spi",
-#else
 			  p54spi_interrupt, IRQF_NO_AUTOEN, "p54spi",
-#endif
 			  priv->spi);
 	if (ret < 0) {
 		dev_err(&priv->spi->dev, "request_irq() failed");
 		goto err_free_gpio_irq;
 	}
-
-#ifndef IRQF_NO_AUTOEN
-	disable_irq(gpio_to_irq(p54spi_gpio_irq));
-#endif
 
 	irq_set_irq_type(gpio_to_irq(p54spi_gpio_irq), IRQ_TYPE_EDGE_RISING);
 
@@ -693,6 +685,13 @@ static void p54spi_remove(struct spi_device *spi)
 
 	p54_free_common(priv->hw);
 }
+#if LINUX_VERSION_IS_LESS(5,18,0)
+static int bp_p54spi_remove(struct spi_device *spi) {
+	p54spi_remove(spi);
+
+	return 0;
+}
+#endif
 
 
 static struct spi_driver p54spi_driver = {
@@ -701,7 +700,12 @@ static struct spi_driver p54spi_driver = {
 	},
 
 	.probe		= p54spi_probe,
+#if LINUX_VERSION_IS_GEQ(5,18,0)
 	.remove		= p54spi_remove,
+#else
+	.remove = bp_p54spi_remove,
+#endif
+
 };
 
 module_spi_driver(p54spi_driver);

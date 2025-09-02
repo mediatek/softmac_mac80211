@@ -1022,6 +1022,7 @@ static int ath12k_ahb_probe(struct platform_device *pdev)
 	ab->hif.ops = hif_ops;
 	ab->pdev = pdev;
 	ab->hw_rev = hw_rev;
+	ab->target_mem_mode = ATH12K_QMI_MEMORY_MODE_DEFAULT;
 	platform_set_drvdata(pdev, ab);
 	ab_ahb = ath12k_ab_to_ahb(ab);
 	ab_ahb->ab = ab;
@@ -1135,25 +1136,13 @@ qmi_fail:
 	ath12k_ahb_free_resources(ab);
 }
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_ath12k_ahb_remove(struct platform_device *pdev) {
-	ath12k_ahb_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver ath12k_ahb_driver = {
 	.driver         = {
 		.name   = "ath12k_ahb",
 		.of_match_table = ath12k_ahb_of_match,
 	},
 	.probe  = ath12k_ahb_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove = ath12k_ahb_remove,
-#else
-	.remove = bp_ath12k_ahb_remove,
-#endif
-
 };
 
 int ath12k_ahb_init(void)

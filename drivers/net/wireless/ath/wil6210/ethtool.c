@@ -101,7 +101,9 @@ out_bad:
 }
 
 static const struct ethtool_ops wil_ethtool_ops = {
+#if LINUX_VERSION_IS_GEQ(5,7,0)
 	.supported_coalesce_params = ETHTOOL_COALESCE_USECS,
+#endif
 	.get_drvinfo	= cfg80211_get_drvinfo,
 	.get_coalesce	= wil_ethtoolops_get_coalesce,
 	.set_coalesce	= wil_ethtoolops_set_coalesce,

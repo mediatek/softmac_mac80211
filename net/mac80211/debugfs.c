@@ -4,7 +4,7 @@
  *
  * Copyright 2007	Johannes Berg <johannes@sipsolutions.net>
  * Copyright 2013-2014  Intel Mobile Communications GmbH
- * Copyright (C) 2018 - 2019, 2021-2024 Intel Corporation
+ * Copyright (C) 2018 - 2019, 2021-2025 Intel Corporation
  */
 
 #include <linux/debugfs.h>
@@ -43,6 +43,7 @@ static ssize_t name## _read(struct file *file, char __user *userbuf,	\
 
 #define DEBUGFS_READONLY_FILE_OPS(name)			\
 static const struct debugfs_short_fops name## _ops = {				\
+	.open = simple_open,						\
 	.read = name## _read,						\
 	.llseek = generic_file_llseek,					\
 };
@@ -142,6 +143,10 @@ static ssize_t aqm_write(struct file *file,
 }
 
 static const struct debugfs_short_fops aqm_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.write = aqm_write,
 	.read = aqm_read,
 	.llseek = default_llseek,
@@ -193,6 +198,10 @@ static ssize_t airtime_flags_write(struct file *file,
 }
 
 static const struct debugfs_short_fops airtime_flags_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.write = airtime_flags_write,
 	.read = airtime_flags_read,
 	.llseek = default_llseek,
@@ -223,6 +232,10 @@ static ssize_t aql_pending_read(struct file *file,
 }
 
 static const struct debugfs_short_fops aql_pending_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.read = aql_pending_read,
 	.llseek = default_llseek,
 };
@@ -302,6 +315,10 @@ static ssize_t aql_txq_limit_write(struct file *file,
 }
 
 static const struct debugfs_short_fops aql_txq_limit_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.write = aql_txq_limit_write,
 	.read = aql_txq_limit_read,
 	.llseek = default_llseek,
@@ -351,6 +368,10 @@ static ssize_t aql_enable_write(struct file *file, const char __user *user_buf,
 }
 
 static const struct debugfs_short_fops aql_enable_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.write = aql_enable_write,
 	.read = aql_enable_read,
 	.llseek = default_llseek,
@@ -401,6 +422,10 @@ static ssize_t force_tx_status_write(struct file *file,
 }
 
 static const struct debugfs_short_fops force_tx_status_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.write = force_tx_status_write,
 	.read = force_tx_status_read,
 	.llseek = default_llseek,
@@ -428,6 +453,10 @@ static ssize_t reset_write(struct file *file, const char __user *user_buf,
 }
 
 static const struct debugfs_short_fops reset_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.write = reset_write,
 	.llseek = noop_llseek,
 };
@@ -490,7 +519,6 @@ static const char *hw_flag_names[] = {
 	FLAG(DETECTS_COLOR_COLLISION),
 	FLAG(MLO_MCAST_MULTI_LINK_TX),
 	FLAG(DISALLOW_PUNCTURING),
-	FLAG(DISALLOW_PUNCTURING_5GHZ),
 	FLAG(HANDLES_QUIET_CSA),
 	FLAG(STRICT),
 #undef FLAG
@@ -659,6 +687,7 @@ static ssize_t stats_ ##name## _read(struct file *file,			\
 static const struct debugfs_short_fops stats_ ##name## _ops = {			\
 	.read = stats_ ##name## _read,					\
 	.llseek = generic_file_llseek,					\
+	.open = simple_open,						\
 };
 
 #ifdef CPTCFG_MAC80211_DEBUG_COUNTERS

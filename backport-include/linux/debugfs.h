@@ -63,5 +63,4 @@ debugfs_leave_cancellation(struct file *file,
 	})
 #endif
 
-
 #endif /* __BACKPORT_DEBUGFS_H_ */

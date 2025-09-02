@@ -103,4 +103,12 @@ static inline bool skb_queue_empty_lockless(const struct sk_buff_head *list)
 }
 #endif /* < 5.4 */
 
+#if LINUX_VERSION_IS_LESS(6,0,0)
+#define kfree_skb_reason LINUX_BACKPORT(kfree_skb_reason)
+static inline void kfree_skb_reason(struct sk_buff *skb, int reason)
+{
+       return kfree_skb(skb);
+}
+#endif /* < 6.0.0 */
+
 #endif /* __BACKPORT_SKBUFF_H */

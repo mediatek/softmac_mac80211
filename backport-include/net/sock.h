@@ -23,12 +23,12 @@ static inline void backport_sk_error_report(struct sock *sk)
 #define sk_error_report(sk) LINUX_BACKPORT(sk_error_report(sk))
 #endif /* <= 5.14 */
 
-#if LINUX_VERSION_IS_LESS(6,16,0)
-static inline bool
-sk_requests_wifi_status(struct sock *sk)
+#if LINUX_VERSION_IS_LESS(6,15,0)
+static inline bool backport_sk_requests_wifi_status(struct sock *sk)
 {
 	return sk && sk_fullsock(sk) && sock_flag(sk, SOCK_WIFI_STATUS);
 }
-#endif /* <= 6.16 */
+#define sk_requests_wifi_status(sk) LINUX_BACKPORT(sk_requests_wifi_status(sk))
+#endif /* <= 6.15 */
 
 #endif /* __BACKPORT_NET_SOCK_H */

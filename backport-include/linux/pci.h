@@ -36,22 +36,4 @@ backport_pci_disable_link_state(struct pci_dev *pdev, int state)
 #define PCI_IRQ_INTX PCI_IRQ_LEGACY
 #endif
 
-#if LINUX_VERSION_IS_LESS(6,13,0)
-
-#define pcim_request_all_regions(pdev, name) pcim_iomap_regions_request_all(pdev, BIT(0), name)
-
-static inline void __iomem *
-backport_pcim_iomap(struct pci_dev *pdev, int bar, unsigned long maxlen)
-{
-	void __iomem * const *table = pcim_iomap_table(pdev);
-
-	if (!table)
-		return NULL;
-
-	return table[0];
-}
-#define pcim_iomap LINUX_BACKPORT(pcim_iomap)
-
-#endif /* <6.13 */
-
 #endif /* _BACKPORT_LINUX_PCI_H */

@@ -146,7 +146,7 @@ void ieee80211_recalc_idle(struct ieee80211_local *local)
 {
 	u32 change = __ieee80211_recalc_idle(local, false);
 	if (change)
-		ieee80211_hw_config(local, change);
+		ieee80211_hw_config(local, -1, change);
 }
 
 static int ieee80211_verify_mac(struct ieee80211_sub_if_data *sdata, u8 *addr,
@@ -726,7 +726,7 @@ static void ieee80211_do_stop(struct ieee80211_sub_if_data *sdata, bool going_do
 
 	/* do after stop to avoid reconfiguring when we stop anyway */
 	ieee80211_configure_filter(local);
-	ieee80211_hw_config(local, hw_reconf_flags);
+	ieee80211_hw_config(local, -1, hw_reconf_flags);
 
 	if (local->virt_monitors == local->open_count)
 		ieee80211_add_virtual_monitor(local);
@@ -867,6 +867,14 @@ static void ieee80211_uninit(struct net_device *dev)
 	ieee80211_teardown_sdata(IEEE80211_DEV_TO_SUB_IF(dev));
 }
 
+#if LINUX_VERSION_IS_LESS(6,9,0)
+static void
+ieee80211_get_stats64(struct net_device *dev, struct rtnl_link_stats64 *stats)
+{
+	dev_fetch_sw_netstats(stats, dev->tstats);
+}
+#endif
+
 static int ieee80211_netdev_setup_tc(struct net_device *dev,
 				     enum tc_setup_type type, void *type_data)
 {
@@ -884,6 +892,9 @@ static const struct net_device_ops ieee80211_dataif_ops = {
 	.ndo_set_rx_mode	= ieee80211_set_multicast_list,
 	.ndo_set_mac_address 	= ieee80211_change_mac,
 	.ndo_setup_tc		= ieee80211_netdev_setup_tc,
+#if LINUX_VERSION_IS_LESS(6,9,0)
+	.ndo_get_stats64	= ieee80211_get_stats64,
+#endif
 };
 
 static u16 ieee80211_monitor_select_queue(struct net_device *dev,
@@ -922,6 +933,9 @@ static const struct net_device_ops ieee80211_monitorif_ops = {
 	.ndo_set_rx_mode	= ieee80211_set_multicast_list,
 	.ndo_set_mac_address 	= ieee80211_change_mac,
 	.ndo_select_queue	= ieee80211_monitor_select_queue,
+#if LINUX_VERSION_IS_LESS(6,9,0)
+	.ndo_get_stats64	= ieee80211_get_stats64,
+#endif
 };
 
 static int ieee80211_netdev_fill_forward_path(struct net_device_path_ctx *ctx,
@@ -991,6 +1005,9 @@ static const struct net_device_ops ieee80211_dataif_8023_ops = {
 	.ndo_set_mac_address	= ieee80211_change_mac,
 	.ndo_fill_forward_path	= ieee80211_netdev_fill_forward_path,
 	.ndo_setup_tc		= ieee80211_netdev_setup_tc,
+#if LINUX_VERSION_IS_LESS(6,9,0)
+	.ndo_get_stats64	= ieee80211_get_stats64,
+#endif
 };
 
 static bool ieee80211_iftype_supports_hdr_offload(enum nl80211_iftype iftype)
@@ -1493,7 +1510,7 @@ int ieee80211_do_open(struct wireless_dev *wdev, bool coming_up)
 	if (local->open_count == 1)
 		ieee80211_hw_conf_init(local);
 	else if (hw_reconf_flags)
-		ieee80211_hw_config(local, hw_reconf_flags);
+		ieee80211_hw_config(local, -1, hw_reconf_flags);
 
 	ieee80211_recalc_ps(local);
 
@@ -1514,6 +1531,13 @@ int ieee80211_do_open(struct wireless_dev *wdev, bool coming_up)
 	return res;
 }
 
+#if LINUX_VERSION_IS_LESS(5,5,0)
+static void ieee80211_if_free(struct net_device *dev)
+{
+       free_percpu(dev->tstats);
+}
+#endif
+
 static void ieee80211_if_setup(struct net_device *dev)
 {
 	ether_setup(dev);
@@ -1521,6 +1545,9 @@ static void ieee80211_if_setup(struct net_device *dev)
 	dev->priv_flags |= IFF_NO_QUEUE;
 	dev->netdev_ops = &ieee80211_dataif_ops;
 	dev->needs_free_netdev = true;
+#if LINUX_VERSION_IS_LESS(5,5,0)
+       dev->priv_destructor = ieee80211_if_free;
+#endif
 }
 
 static void ieee80211_iface_process_skb(struct ieee80211_local *local,
@@ -1555,6 +1582,35 @@ static void ieee80211_iface_process_skb(struct ieee80211_local *local,
 				WARN_ON(1);
 				break;
 			}
+		}
+	} else if (ieee80211_is_action(mgmt->frame_control) &&
+		   mgmt->u.action.category == WLAN_CATEGORY_HT) {
+		switch (mgmt->u.action.u.ht_smps.action) {
+		case WLAN_HT_ACTION_NOTIFY_CHANWIDTH: {
+			u8 chanwidth = mgmt->u.action.u.ht_notify_cw.chanwidth;
+			struct ieee80211_rx_status *status;
+			struct link_sta_info *link_sta;
+			struct sta_info *sta;
+
+			sta = sta_info_get_bss(sdata, mgmt->sa);
+			if (!sta)
+				break;
+
+			status = IEEE80211_SKB_RXCB(skb);
+			if (!status->link_valid)
+				link_sta = &sta->deflink;
+			else
+				link_sta = rcu_dereference_protected(sta->link[status->link_id],
+							lockdep_is_held(&local->hw.wiphy->mtx));
+			if (link_sta)
+				ieee80211_ht_handle_chanwidth_notif(local, sdata, sta,
+								    link_sta, chanwidth,
+								    status->band);
+			break;
+		}
+		default:
+			WARN_ON(1);
+			break;
 		}
 	} else if (ieee80211_is_action(mgmt->frame_control) &&
 		   mgmt->u.action.category == WLAN_CATEGORY_VHT) {
@@ -2166,7 +2222,15 @@ int ieee80211_if_add(struct ieee80211_local *local, const char *name,
 
 		dev_net_set(ndev, wiphy_net(local->hw.wiphy));
 
+#if LINUX_VERSION_IS_LESS(5,5,0)
+		ndev->tstats = netdev_alloc_pcpu_stats(struct pcpu_sw_netstats);
+		if (!ndev->tstats) {
+			free_netdev(ndev);
+			return -ENOMEM;
+		}
+#else
 		ndev->pcpu_stat_type = NETDEV_PCPU_STAT_TSTATS;
+#endif
 
 		ndev->needed_headroom = local->tx_headroom +
 					4*6 /* four MAC addresses */
@@ -2179,6 +2243,9 @@ int ieee80211_if_add(struct ieee80211_local *local, const char *name,
 
 		ret = dev_alloc_name(ndev, ndev->name);
 		if (ret < 0) {
+#if LINUX_VERSION_IS_LESS(5,5,0)
+			ieee80211_if_free(ndev);
+#endif
 			free_netdev(ndev);
 			return ret;
 		}

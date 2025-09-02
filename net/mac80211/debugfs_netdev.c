@@ -222,6 +222,7 @@ static ssize_t ieee80211_if_fmt_##name(					\
 
 #define _IEEE80211_IF_FILE_OPS(name, _read, _write)			\
 static const struct debugfs_short_fops name##_ops = {				\
+	.open = simple_open,						\
 	.read = (_read),						\
 	.write = (_write),						\
 	.llseek = generic_file_llseek,					\
@@ -704,7 +705,7 @@ static ssize_t ieee80211_if_parse_tsf(
 		}
 	}
 
-	ieee80211_recalc_dtim(local, sdata);
+	ieee80211_recalc_dtim(sdata, drv_get_tsf(local, sdata));
 	return buflen;
 }
 IEEE80211_IF_FILE_RW(tsf);

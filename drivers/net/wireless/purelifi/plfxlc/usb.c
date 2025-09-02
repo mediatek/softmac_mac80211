@@ -503,10 +503,8 @@ int plfxlc_usb_wreq_async(struct plfxlc_usb *usb, const u8 *buffer,
 			  (void *)buffer, buffer_len, complete_fn, context);
 
 	r = usb_submit_urb(urb, GFP_ATOMIC);
-	if (r) {
-		usb_free_urb(urb);
+	if (r)
 		dev_err(&udev->dev, "Async write submit failed (%d)\n", r);
-	}
 
 	return r;
 }
@@ -548,7 +546,7 @@ error:
 
 static void slif_data_plane_sap_timer_callb(struct timer_list *t)
 {
-	struct plfxlc_usb *usb = timer_container_of(usb, t, tx.tx_retry_timer);
+	struct plfxlc_usb *usb = from_timer(usb, t, tx.tx_retry_timer);
 
 	plfxlc_send_packet_from_data_queue(usb);
 	timer_setup(&usb->tx.tx_retry_timer,
@@ -558,7 +556,7 @@ static void slif_data_plane_sap_timer_callb(struct timer_list *t)
 
 static void sta_queue_cleanup_timer_callb(struct timer_list *t)
 {
-	struct plfxlc_usb *usb = timer_container_of(usb, t, sta_queue_cleanup);
+	struct plfxlc_usb *usb = from_timer(usb, t, sta_queue_cleanup);
 	struct plfxlc_usb_tx *tx = &usb->tx;
 	int sidx;
 
@@ -716,8 +714,8 @@ static void disconnect(struct usb_interface *intf)
 	mac = plfxlc_hw_mac(hw);
 	usb = &mac->chip.usb;
 
-	timer_delete_sync(&usb->tx.tx_retry_timer);
-	timer_delete_sync(&usb->sta_queue_cleanup);
+	del_timer_sync(&usb->tx.tx_retry_timer);
+	del_timer_sync(&usb->sta_queue_cleanup);
 
 	ieee80211_unregister_hw(hw);
 

@@ -1887,21 +1887,9 @@ static void ath10k_snoc_shutdown(struct platform_device *pdev)
 	ath10k_snoc_free_resources(ar);
 }
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_ath10k_snoc_remove(struct platform_device *pdev) {
-	ath10k_snoc_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver ath10k_snoc_driver = {
 	.probe = ath10k_snoc_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove = ath10k_snoc_remove,
-#else
-	.remove = bp_ath10k_snoc_remove,
-#endif
-	
 	.shutdown = ath10k_snoc_shutdown,
 	.driver = {
 		.name = "ath10k_snoc",

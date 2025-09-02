@@ -163,6 +163,10 @@ out_free:
 }
 
 static struct debugfs_short_fops debugfs_fops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.read	= carl9170_debugfs_read,
 	.write	= carl9170_debugfs_write,
 };

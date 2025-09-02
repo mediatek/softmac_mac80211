@@ -154,7 +154,11 @@ static SIMPLE_DEV_PM_OPS(wiphy_pm_ops, wiphy_suspend, wiphy_resume);
 #define WIPHY_PM_OPS NULL
 #endif
 
+#if LINUX_VERSION_IS_GEQ(6,2,0)
 static const void *wiphy_namespace(const struct device *d)
+#else
+static const void *wiphy_namespace(struct device *d)
+#endif
 {
 	struct wiphy *wiphy = container_of(d, struct wiphy, dev);
 

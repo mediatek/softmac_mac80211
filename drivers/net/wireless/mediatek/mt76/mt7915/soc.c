@@ -1297,25 +1297,13 @@ static const struct of_device_id mt798x_wmac_of_match[] = {
 
 MODULE_DEVICE_TABLE(of, mt798x_wmac_of_match);
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_mt798x_wmac_remove(struct platform_device *pdev) {
-	mt798x_wmac_remove(pdev);
-
-	return 0;
-}
-#endif
 struct platform_driver mt798x_wmac_driver = {
 	.driver = {
 		.name = "mt798x-wmac",
 		.of_match_table = mt798x_wmac_of_match,
 	},
 	.probe = mt798x_wmac_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove = mt798x_wmac_remove,
-#else
-	.remove = bp_mt798x_wmac_remove,
-#endif
-
 };
 
 MODULE_FIRMWARE(MT7986_FIRMWARE_WA);

@@ -15,16 +15,13 @@ void __iwl_ ##fn(struct device *dev, const char *fmt, ...)	\
 	struct va_format vaf = {				\
 		.fmt = fmt,					\
 	};							\
-	va_list args1, args2;					\
+	va_list args;						\
 								\
-	va_start(args1, fmt);					\
-	va_copy(args2, args1);					\
-	vaf.va = &args2;					\
+	va_start(args, fmt);					\
+	vaf.va = &args;						\
 	dev_ ##fn(dev, "%pV", &vaf);				\
-	va_end(args2);						\
-	vaf.va = &args1;					\
 	trace_iwlwifi_ ##fn(&vaf);				\
-	va_end(args1);						\
+	va_end(args);						\
 }
 
 __iwl_fn(warn)
@@ -77,18 +74,12 @@ void __iwl_dbg(struct device *dev,
 	va_list args;
 
 	va_start(args, fmt);
+	vaf.va = &args;
 #ifdef CPTCFG_IWLWIFI_DEBUG
 	if (iwl_have_debug_level(level) &&
-	    (!limit || net_ratelimit())) {
-		va_list args2;
-
-		va_copy(args2, args);
-		vaf.va = &args2;
+	    (!limit || net_ratelimit()))
 		dev_printk(KERN_DEBUG, dev, "%s %pV", function, &vaf);
-		va_end(args2);
-	}
 #endif
-	vaf.va = &args;
 	trace_iwlwifi_dbg(level, function, &vaf);
 	va_end(args);
 }

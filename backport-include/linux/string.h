@@ -1,7 +1,9 @@
 #ifndef __BACKPORT_LINUX_STRING_H
 #define __BACKPORT_LINUX_STRING_H
 #include_next <linux/string.h>
+#if LINUX_VERSION_IS_GEQ(6,6,0)
 #include <linux/args.h>
+#endif
 
 #ifndef memset_after
 #define memset_after(obj, v, member)					\
@@ -48,11 +50,17 @@
 #define strscpy_pad(dst, src, ...)	\
 	CONCATENATE(__strscpy_pad, COUNT_ARGS(__VA_ARGS__))(dst, src, __VA_ARGS__)
 
+#if LINUX_VERSION_IS_LESS(5,5,0)
+#undef kmemdup_array
+#define kmemdup_array(src, count, element_size, gfp)	\
+	kmemdup(src, size_mul(element_size, count), gfp);
+#else
 static inline void *
 kmemdup_array(const void *src, size_t count, size_t element_size, gfp_t gfp)
 {
 	return kmemdup(src, size_mul(element_size, count), gfp);
 }
+#endif /* <5.5 */
 
 #endif /* <6.9 */
 

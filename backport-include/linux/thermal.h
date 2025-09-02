@@ -37,7 +37,7 @@ static inline void *thermal_zone_device_priv(struct thermal_zone_device *tzd)
 }
 #endif
 
-#if LINUX_VERSION_IS_LESS(6,6,0)
+#if LINUX_VERSION_IS_LESS(5,4,0)
 #define for_each_thermal_trip LINUX_BACKPORT(for_each_thermal_trip)
 static inline int for_each_thermal_trip(struct thermal_zone_device *tz,
 					int (*cb)(struct thermal_trip *, void *),
@@ -56,6 +56,6 @@ static inline int for_each_thermal_trip(struct thermal_zone_device *tz,
 
 	return 0;
 }
-#endif /* < 6.6 */
+#endif /* < 5.4 */
 
 #endif /* __BACKPORT_LINUX_THERMAL_H */

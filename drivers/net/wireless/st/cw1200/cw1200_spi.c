@@ -445,6 +445,13 @@ static void cw1200_spi_disconnect(struct spi_device *func)
 		cw1200_spi_off(self, dev_get_platdata(&func->dev));
 	}
 }
+#if LINUX_VERSION_IS_LESS(5,18,0)
+static int bp_cw1200_spi_disconnect(struct spi_device *spi){
+	cw1200_spi_disconnect(spi);
+
+	return 0;
+}
+#endif
 
 static int __maybe_unused cw1200_spi_suspend(struct device *dev)
 {
@@ -461,7 +468,12 @@ static SIMPLE_DEV_PM_OPS(cw1200_pm_ops, cw1200_spi_suspend, NULL);
 
 static struct spi_driver spi_driver = {
 	.probe		= cw1200_spi_probe,
+#if LINUX_VERSION_IS_GEQ(5,18,0)
 	.remove		= cw1200_spi_disconnect,
+#else
+	.remove = bp_cw1200_spi_disconnect,
+#endif
+	
 	.driver = {
 		.name		= "cw1200_wlan_spi",
 		.pm		= IS_ENABLED(CONFIG_PM) ? &cw1200_pm_ops : NULL,

@@ -18,12 +18,13 @@
 static struct page *get_workaround_page(struct iwl_trans *trans,
 					struct sk_buff *skb)
 {
+	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
 	struct iwl_tso_page_info *info;
 	struct page **page_ptr;
 	struct page *ret;
 	dma_addr_t phys;
 
-	page_ptr = (void *)((u8 *)skb->cb + trans->conf.cb_data_offs);
+	page_ptr = (void *)((u8 *)skb->cb + trans_pcie->txqs.page_offs);
 
 	ret = alloc_page(GFP_ATOMIC);
 	if (!ret)
@@ -163,7 +164,7 @@ static int iwl_txq_gen2_build_amsdu(struct iwl_trans *trans,
 				    struct iwl_device_tx_cmd *dev_cmd)
 {
 #ifdef CONFIG_INET
-	struct iwl_tx_cmd_v9 *tx_cmd = (void *)dev_cmd->payload;
+	struct iwl_tx_cmd_gen2 *tx_cmd = (void *)dev_cmd->payload;
 	struct ieee80211_hdr *hdr = (void *)skb->data;
 	unsigned int snap_ip_tcp_hdrlen, ip_hdrlen, total_len, hdr_room;
 	unsigned int mss = skb_shinfo(skb)->gso_size;
@@ -490,21 +491,21 @@ struct iwl_tfh_tfd *iwl_txq_gen2_build_tfd(struct iwl_trans *trans,
 	bool amsdu;
 
 	/* There must be data left over for TB1 or this code must be changed */
-	BUILD_BUG_ON(sizeof(struct iwl_tx_cmd_v9) < IWL_FIRST_TB_SIZE);
+	BUILD_BUG_ON(sizeof(struct iwl_tx_cmd_gen2) < IWL_FIRST_TB_SIZE);
 	BUILD_BUG_ON(sizeof(struct iwl_cmd_header) +
-		     offsetofend(struct iwl_tx_cmd_v9, dram_info) >
+		     offsetofend(struct iwl_tx_cmd_gen2, dram_info) >
 		     IWL_FIRST_TB_SIZE);
-	BUILD_BUG_ON(sizeof(struct iwl_tx_cmd) < IWL_FIRST_TB_SIZE);
+	BUILD_BUG_ON(sizeof(struct iwl_tx_cmd_gen3) < IWL_FIRST_TB_SIZE);
 	BUILD_BUG_ON(sizeof(struct iwl_cmd_header) +
-		     offsetofend(struct iwl_tx_cmd, dram_info) >
+		     offsetofend(struct iwl_tx_cmd_gen3, dram_info) >
 		     IWL_FIRST_TB_SIZE);
 
 	memset(tfd, 0, sizeof(*tfd));
 
-	if (trans->mac_cfg->device_family < IWL_DEVICE_FAMILY_AX210)
-		len = sizeof(struct iwl_tx_cmd_v9);
+	if (trans->trans_cfg->device_family < IWL_DEVICE_FAMILY_AX210)
+		len = sizeof(struct iwl_tx_cmd_gen2);
 	else
-		len = sizeof(struct iwl_tx_cmd);
+		len = sizeof(struct iwl_tx_cmd_gen3);
 
 	amsdu = ieee80211_is_data_qos(hdr->frame_control) &&
 			(*ieee80211_get_qos_ctl(hdr) &
@@ -535,17 +536,17 @@ int iwl_txq_space(struct iwl_trans *trans, const struct iwl_txq *q)
 	 * If q->n_window is smaller than max_tfd_queue_size, there is no need
 	 * to reserve any queue entries for this purpose.
 	 */
-	if (q->n_window < trans->mac_cfg->base->max_tfd_queue_size)
+	if (q->n_window < trans->trans_cfg->base_params->max_tfd_queue_size)
 		max = q->n_window;
 	else
-		max = trans->mac_cfg->base->max_tfd_queue_size - 1;
+		max = trans->trans_cfg->base_params->max_tfd_queue_size - 1;
 
 	/*
 	 * max_tfd_queue_size is a power of 2, so the following is equivalent to
 	 * modulo by max_tfd_queue_size and is well defined.
 	 */
 	used = (q->write_ptr - q->read_ptr) &
-		(trans->mac_cfg->base->max_tfd_queue_size - 1);
+		(trans->trans_cfg->base_params->max_tfd_queue_size - 1);
 
 	if (WARN_ON(used > max))
 		return 0;
@@ -560,8 +561,8 @@ static void iwl_pcie_gen2_update_byte_tbl(struct iwl_trans *trans,
 					  struct iwl_txq *txq, u16 byte_cnt,
 					  int num_tbs)
 {
+	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
 	int idx = iwl_txq_get_cmd_index(txq, txq->write_ptr);
-	struct iwl_bc_tbl_entry *scd_bc_tbl = txq->bc_tbl.addr;
 	u8 filled_tfd_size, num_fetch_chunks;
 	u16 len = byte_cnt;
 	__le16 bc_ent;
@@ -581,16 +582,24 @@ static void iwl_pcie_gen2_update_byte_tbl(struct iwl_trans *trans,
 	 */
 	num_fetch_chunks = DIV_ROUND_UP(filled_tfd_size, 64) - 1;
 
-	if (trans->mac_cfg->device_family >= IWL_DEVICE_FAMILY_AX210) {
+	if (trans->trans_cfg->device_family >= IWL_DEVICE_FAMILY_AX210) {
+		struct iwl_gen3_bc_tbl_entry *scd_bc_tbl_gen3 = txq->bc_tbl.addr;
+
+		/* Starting from AX210, the HW expects bytes */
+		WARN_ON(trans_pcie->txqs.bc_table_dword);
 		WARN_ON(len > 0x3FFF);
 		bc_ent = cpu_to_le16(len | (num_fetch_chunks << 14));
+		scd_bc_tbl_gen3[idx].tfd_offset = bc_ent;
 	} else {
+		struct iwlagn_scd_bc_tbl *scd_bc_tbl = txq->bc_tbl.addr;
+
+		/* Before AX210, the HW expects DW */
+		WARN_ON(!trans_pcie->txqs.bc_table_dword);
 		len = DIV_ROUND_UP(len, 4);
 		WARN_ON(len > 0xFFF);
 		bc_ent = cpu_to_le16(len | (num_fetch_chunks << 12));
+		scd_bc_tbl->tfd_offset[idx] = bc_ent;
 	}
-
-	scd_bc_tbl[idx].tfd_offset = bc_ent;
 }
 
 static u8 iwl_txq_gen2_get_num_tbs(struct iwl_tfh_tfd *tfd)
@@ -747,8 +756,7 @@ int iwl_txq_gen2_tx(struct iwl_trans *trans, struct sk_buff *skb,
 			struct iwl_device_tx_cmd **dev_cmd_ptr;
 
 			dev_cmd_ptr = (void *)((u8 *)skb->cb +
-					       trans->conf.cb_data_offs +
-					       sizeof(void *));
+					       trans_pcie->txqs.dev_cmd_offs);
 
 			*dev_cmd_ptr = dev_cmd;
 			__skb_queue_tail(&txq->overflow_q, skb);
@@ -777,16 +785,16 @@ int iwl_txq_gen2_tx(struct iwl_trans *trans, struct sk_buff *skb,
 		return -1;
 	}
 
-	if (trans->mac_cfg->device_family >= IWL_DEVICE_FAMILY_AX210) {
-		struct iwl_tx_cmd *tx_cmd =
+	if (trans->trans_cfg->device_family >= IWL_DEVICE_FAMILY_AX210) {
+		struct iwl_tx_cmd_gen3 *tx_cmd_gen3 =
 			(void *)dev_cmd->payload;
 
-		cmd_len = le16_to_cpu(tx_cmd->len);
+		cmd_len = le16_to_cpu(tx_cmd_gen3->len);
 	} else {
-		struct iwl_tx_cmd_v9 *tx_cmd_v9 =
+		struct iwl_tx_cmd_gen2 *tx_cmd_gen2 =
 			(void *)dev_cmd->payload;
 
-		cmd_len = le16_to_cpu(tx_cmd_v9->len);
+		cmd_len = le16_to_cpu(tx_cmd_gen2->len);
 	}
 
 	/* Set up entry for this TFD in Tx byte-count array */
@@ -824,7 +832,7 @@ static void iwl_txq_gen2_unmap(struct iwl_trans *trans, int txq_id)
 		IWL_DEBUG_TX_REPLY(trans, "Q %d Free %d\n",
 				   txq_id, txq->read_ptr);
 
-		if (txq_id != trans->conf.cmd_queue) {
+		if (txq_id != trans_pcie->txqs.cmd.q_id) {
 			int idx = iwl_txq_get_cmd_index(txq, txq->read_ptr);
 			struct iwl_cmd_meta *cmd_meta = &txq->entries[idx].meta;
 			struct sk_buff *skb = txq->entries[idx].skb;
@@ -898,12 +906,12 @@ static void iwl_txq_gen2_free(struct iwl_trans *trans, int txq_id)
 	iwl_txq_gen2_unmap(trans, txq_id);
 
 	/* De-alloc array of command/tx buffers */
-	if (txq_id == trans->conf.cmd_queue)
+	if (txq_id == trans_pcie->txqs.cmd.q_id)
 		for (i = 0; i < txq->n_window; i++) {
 			kfree_sensitive(txq->entries[i].cmd);
 			kfree_sensitive(txq->entries[i].free_buf);
 		}
-	timer_delete_sync(&txq->stuck_timer);
+	del_timer_sync(&txq->stuck_timer);
 
 	iwl_txq_gen2_free_memory(trans, txq);
 
@@ -999,7 +1007,7 @@ static int iwl_pcie_txq_alloc_response(struct iwl_trans *trans,
 
 	txq->id = qid;
 	trans_pcie->txqs.txq[qid] = txq;
-	wr_ptr &= (trans->mac_cfg->base->max_tfd_queue_size - 1);
+	wr_ptr &= (trans->trans_cfg->base_params->max_tfd_queue_size - 1);
 
 	/* Place first TFD at index corresponding to start sequence number */
 	txq->read_ptr = wr_ptr;
@@ -1035,8 +1043,8 @@ int iwl_txq_dyn_alloc(struct iwl_trans *trans, u32 flags, u32 sta_mask,
 	/* but must be power of 2 values for calculating read/write pointers */
 	size = rounddown_pow_of_two(size);
 
-	if (trans->mac_cfg->device_family == IWL_DEVICE_FAMILY_BZ &&
-	    trans->info.hw_rev_step == SILICON_A_STEP) {
+	if (trans->trans_cfg->device_family == IWL_DEVICE_FAMILY_BZ &&
+	    trans->hw_rev_step == SILICON_A_STEP) {
 		size = 4096;
 		txq = iwl_txq_dyn_alloc_dma(trans, size, timeout);
 	} else {
@@ -1056,7 +1064,7 @@ int iwl_txq_dyn_alloc(struct iwl_trans *trans, u32 flags, u32 sta_mask,
 	if (IS_ERR(txq))
 		return PTR_ERR(txq);
 
-	if (trans->conf.queue_alloc_cmd_ver == 0) {
+	if (trans_pcie->txqs.queue_alloc_cmd_ver == 0) {
 		memset(&cmd.old, 0, sizeof(cmd.old));
 		cmd.old.tfdq_addr = cpu_to_le64(txq->dma_addr);
 		cmd.old.byte_cnt_addr = cpu_to_le64(txq->bc_tbl.dma);
@@ -1073,7 +1081,7 @@ int iwl_txq_dyn_alloc(struct iwl_trans *trans, u32 flags, u32 sta_mask,
 		hcmd.id = SCD_QUEUE_CFG;
 		hcmd.len[0] = sizeof(cmd.old);
 		hcmd.data[0] = &cmd.old;
-	} else if (trans->conf.queue_alloc_cmd_ver == 3) {
+	} else if (trans_pcie->txqs.queue_alloc_cmd_ver == 3) {
 		memset(&cmd.new, 0, sizeof(cmd.new));
 		cmd.new.operation = cpu_to_le32(IWL_SCD_QUEUE_ADD);
 		cmd.new.u.add.tfdq_dram_addr = cpu_to_le64(txq->dma_addr);
@@ -1168,7 +1176,7 @@ int iwl_txq_gen2_init(struct iwl_trans *trans, int txq_id, int queue_size)
 	}
 
 	ret = iwl_txq_init(trans, queue, queue_size,
-			   (txq_id == trans->conf.cmd_queue));
+			   (txq_id == trans_pcie->txqs.cmd.q_id));
 	if (ret) {
 		IWL_ERR(trans, "Tx %d queue alloc failed\n", txq_id);
 		goto error;
@@ -1198,7 +1206,7 @@ int iwl_pcie_gen2_enqueue_hcmd(struct iwl_trans *trans,
 			       struct iwl_host_cmd *cmd)
 {
 	struct iwl_trans_pcie *trans_pcie = IWL_TRANS_GET_PCIE_TRANS(trans);
-	struct iwl_txq *txq = trans_pcie->txqs.txq[trans->conf.cmd_queue];
+	struct iwl_txq *txq = trans_pcie->txqs.txq[trans_pcie->txqs.cmd.q_id];
 	struct iwl_device_cmd *out_cmd;
 	struct iwl_cmd_meta *out_meta;
 	void *dup_buf = NULL;
@@ -1315,7 +1323,7 @@ int iwl_pcie_gen2_enqueue_hcmd(struct iwl_trans *trans,
 		cpu_to_le16(cmd_size - sizeof(struct iwl_cmd_header_wide));
 	out_cmd->hdr_wide.reserved = 0;
 	out_cmd->hdr_wide.sequence =
-		cpu_to_le16(QUEUE_TO_SEQ(trans->conf.cmd_queue) |
+		cpu_to_le16(QUEUE_TO_SEQ(trans_pcie->txqs.cmd.q_id) |
 					 INDEX_TO_SEQ(txq->write_ptr));
 
 	cmd_pos = sizeof(struct iwl_cmd_header_wide);
@@ -1363,7 +1371,7 @@ int iwl_pcie_gen2_enqueue_hcmd(struct iwl_trans *trans,
 		     "Sending command %s (%.2x.%.2x), seq: 0x%04X, %d bytes at %d[%d]:%d\n",
 		     iwl_get_cmd_string(trans, cmd->id), group_id,
 		     out_cmd->hdr.cmd, le16_to_cpu(out_cmd->hdr.sequence),
-		     cmd_size, txq->write_ptr, idx, trans->conf.cmd_queue);
+		     cmd_size, txq->write_ptr, idx, trans_pcie->txqs.cmd.q_id);
 
 	/* start the TFD with the minimum copy bytes */
 	tb0_size = min_t(int, copy_size, IWL_FIRST_TB_SIZE);

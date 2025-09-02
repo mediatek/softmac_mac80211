@@ -330,6 +330,13 @@ static void wl1251_spi_remove(struct spi_device *spi)
 	wl1251_free_hw(wl);
 	regulator_disable(wl->vio);
 }
+#if LINUX_VERSION_IS_LESS(5,18,0)
+static int bp_wl1251_spi_remove(struct spi_device *spi){
+	wl1251_spi_remove(spi);
+
+	return 0;
+}
+#endif
 
 static struct spi_driver wl1251_spi_driver = {
 	.driver = {
@@ -337,7 +344,12 @@ static struct spi_driver wl1251_spi_driver = {
 	},
 
 	.probe		= wl1251_spi_probe,
+#if LINUX_VERSION_IS_GEQ(5,18,0)
 	.remove		= wl1251_spi_remove,
+#else
+	.remove = bp_wl1251_spi_remove,
+#endif
+
 };
 
 module_spi_driver(wl1251_spi_driver);

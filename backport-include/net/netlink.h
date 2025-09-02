@@ -415,6 +415,7 @@ static inline u16 nla_get_u16_default(const struct nlattr *nla, u16 defvalue)
 		return defvalue;
 	return nla_get_u16(nla);
 }
+
 static inline __be16 nla_get_be16_default(const struct nlattr *nla,
 					  __be16 defvalue)
 {

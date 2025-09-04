@@ -1741,11 +1741,6 @@ static int ieee80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
 
 	ieee80211_vif_cfg_change_notify(sdata, BSS_CHANGED_SSID);
 	ieee80211_link_info_change_notify(sdata, link, changed);
-	/* for MLD AP, enable_beacon is false during the first beacon set,
-	 * enable it after that. This allows userspace to control the
-	 * beacon enable timing.
-	 */
-	link_conf->enable_beacon = true;
 
 	if (ieee80211_num_beaconing_links(sdata) <= 1)
 		netif_carrier_on(dev);
@@ -1820,6 +1815,7 @@ static int ieee80211_change_beacon(struct wiphy *wiphy, struct net_device *dev,
 		changed |= BSS_CHANGED_HE_BSS_COLOR;
 	}
 
+	link_conf->enable_beacon = true;
 	ieee80211_link_info_change_notify(sdata, link, changed);
 	return 0;
 }

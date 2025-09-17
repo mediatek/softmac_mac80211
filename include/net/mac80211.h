@@ -5166,10 +5166,10 @@ struct ieee80211_ops {
 				       struct ieee80211_vif *vif,
 				       struct ieee80211_sta *sta, u16 weight);
 	int (*add_twt_setup)(struct ieee80211_hw *hw,
-			     struct ieee80211_sta *sta,
+			     struct ieee80211_sta *sta, u8 link_id,
 			     struct ieee80211_twt_setup *twt);
 	int (*twt_teardown_request)(struct ieee80211_hw *hw,
-				    struct ieee80211_sta *sta,
+				    struct ieee80211_sta *sta, u8 link_id,
 				    struct ieee80211_twt_teardown *td);
 	int (*add_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 			u8 link_id, struct cfg80211_broadcast_twt_settings *btwt);

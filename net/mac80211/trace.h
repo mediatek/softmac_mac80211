@@ -2492,10 +2492,11 @@ DEFINE_EVENT(sta_flag_evt, drv_sta_set_decap_offload,
 TRACE_EVENT(drv_add_twt_setup,
 	TP_PROTO(struct ieee80211_local *local,
 		 struct ieee80211_sta *sta,
+		 u8 link_id,
 		 struct ieee80211_twt_setup *twt,
 		 struct ieee80211_twt_params *twt_agrt),
 
-	TP_ARGS(local, sta, twt, twt_agrt),
+	TP_ARGS(local, sta, link_id, twt, twt_agrt),
 
 	TP_STRUCT__entry(
 		LOCAL_ENTRY
@@ -2507,11 +2508,12 @@ TRACE_EVENT(drv_add_twt_setup,
 		__field(u8, duration)
 		__field(__le16, mantissa)
 		__field(u8, channel)
+		__field(u32, link_id)
 	),
 
 	TP_fast_assign(
 		LOCAL_ASSIGN;
-		STA_ASSIGN;
+		STA_NAMED_ASSIGN(sta);
 		__entry->dialog_token = twt->dialog_token;
 		__entry->control = twt->control;
 		__entry->req_type = twt_agrt->req_type;
@@ -2519,14 +2521,16 @@ TRACE_EVENT(drv_add_twt_setup,
 		__entry->duration = twt_agrt->indiv.min_twt_dur;
 		__entry->mantissa = twt_agrt->indiv.mantissa;
 		__entry->channel = twt_agrt->indiv.channel;
+		__entry->link_id = link_id;
 	),
 
 	TP_printk(
 		LOCAL_PR_FMT STA_PR_FMT
-		" token:%d control:0x%02x req_type:0x%04x"
+		" (link %d) token:%d control:0x%02x req_type:0x%04x"
 		" twt:%llu duration:%d mantissa:%d channel:%d",
-		LOCAL_PR_ARG, STA_PR_ARG, __entry->dialog_token,
-		__entry->control, le16_to_cpu(__entry->req_type),
+		LOCAL_PR_ARG, STA_PR_ARG, __entry->link_id,
+		__entry->dialog_token, __entry->control,
+		le16_to_cpu(__entry->req_type),
 		le64_to_cpu(__entry->twt), __entry->duration,
 		le16_to_cpu(__entry->mantissa), __entry->channel
 	)
@@ -2535,25 +2539,29 @@ TRACE_EVENT(drv_add_twt_setup,
 TRACE_EVENT(drv_twt_teardown_request,
 	TP_PROTO(struct ieee80211_local *local,
 		 struct ieee80211_sta *sta,
+		 u8 link_id,
 		 struct ieee80211_twt_teardown *td),
 
-	TP_ARGS(local, sta, td),
+	TP_ARGS(local, sta, link_id, td),
 
 	TP_STRUCT__entry(
 		LOCAL_ENTRY
 		STA_ENTRY
 		__field(u8, flowid)
+		__field(u32, link_id)
 	),
 
 	TP_fast_assign(
 		LOCAL_ASSIGN;
-		STA_ASSIGN;
+		STA_NAMED_ASSIGN(sta);
 		__entry->flowid = td->id;
+		__entry->link_id = link_id;
 	),
 
 	TP_printk(
-		LOCAL_PR_FMT STA_PR_FMT " flowid:%d",
-		LOCAL_PR_ARG, STA_PR_ARG, __entry->flowid
+		LOCAL_PR_FMT STA_PR_FMT " (link %d) flowid:%d",
+		LOCAL_PR_ARG, STA_PR_ARG, __entry->link_id,
+		__entry->flowid
 	)
 );
 

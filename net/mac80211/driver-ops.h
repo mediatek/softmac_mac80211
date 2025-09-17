@@ -1636,7 +1636,7 @@ static inline void drv_sta_set_decap_offload(struct ieee80211_local *local,
 
 static inline int drv_add_twt_setup(struct ieee80211_local *local,
 				    struct ieee80211_sub_if_data *sdata,
-				    struct ieee80211_sta *sta,
+				    struct ieee80211_sta *sta, u8 link_id,
 				    struct ieee80211_twt_setup *twt)
 {
 	struct ieee80211_twt_params *twt_agrt;
@@ -1650,8 +1650,8 @@ static inline int drv_add_twt_setup(struct ieee80211_local *local,
 
 	twt_agrt = (void *)twt->params;
 
-	trace_drv_add_twt_setup(local, sta, twt, twt_agrt);
-	ret = local->ops->add_twt_setup(&local->hw, sta, twt);
+	trace_drv_add_twt_setup(local, sta, link_id, twt, twt_agrt);
+	ret = local->ops->add_twt_setup(&local->hw, sta, link_id, twt);
 	trace_drv_return_int(local, ret);
 
 	return ret;
@@ -1659,7 +1659,7 @@ static inline int drv_add_twt_setup(struct ieee80211_local *local,
 
 static inline int drv_twt_teardown_request(struct ieee80211_local *local,
 					   struct ieee80211_sub_if_data *sdata,
-					   struct ieee80211_sta *sta,
+					   struct ieee80211_sta *sta, u8 link_id,
 					   struct ieee80211_twt_teardown *td)
 {
 	int ret = -EINVAL;
@@ -1672,8 +1672,8 @@ static inline int drv_twt_teardown_request(struct ieee80211_local *local,
 	if (!local->ops->twt_teardown_request)
 		return ret;
 
-	trace_drv_twt_teardown_request(local, sta, td);
-	ret = local->ops->twt_teardown_request(&local->hw, sta, td);
+	trace_drv_twt_teardown_request(local, sta, link_id, td);
+	ret = local->ops->twt_teardown_request(&local->hw, sta, link_id, td);
 	trace_drv_return_int(local, ret);
 
 	return ret;

@@ -96,7 +96,7 @@ ieee80211_s1g_send_twt_teardown(struct ieee80211_sub_if_data *sdata,
 
 static int
 ieee80211_s1g_handle_twt_demand_setup(struct ieee80211_sub_if_data *sdata,
-				      struct sk_buff *skb)
+				      struct sk_buff *skb, u8 link_id)
 {
 	const size_t fixed_len = offsetof(struct ieee80211_twt_params, bcast.rtwt);
 	struct ieee80211_mgmt *mgmt = (void *)skb->data;
@@ -143,8 +143,8 @@ ieee80211_s1g_handle_twt_demand_setup(struct ieee80211_sub_if_data *sdata,
 		return -ENOSPC;
 
 	settings.id = ffz(sdata->deflink.btwt_active_bitmap | BIT(0));
-	/* FIXME: The link id shall be decided based on the effective link. */
-	ret = drv_add_btwt(sdata->local, sdata, 0, &settings);
+
+	ret = drv_add_btwt(sdata->local, sdata, link_id, &settings);
 	if (ret)
 		return ret;
 
@@ -161,7 +161,7 @@ ieee80211_s1g_handle_twt_demand_setup(struct ieee80211_sub_if_data *sdata,
 
 static void
 ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
-			   struct sta_info *sta, struct sk_buff *skb)
+			   struct sta_info *sta, struct sk_buff *skb, u8 link_id)
 {
 	struct ieee80211_mgmt *mgmt = (void *)skb->data;
 	struct ieee80211_twt_setup *twt = (void *)mgmt->u.action.u.s1g.variable;
@@ -171,7 +171,7 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST &&
 	    (le16_get_bits(twt_agrt->req_type, IEEE80211_TWT_REQTYPE_SETUP_CMD) ==
 	     TWT_SETUP_CMD_DEMAND)) {
-		ret = ieee80211_s1g_handle_twt_demand_setup(sdata, skb);
+		ret = ieee80211_s1g_handle_twt_demand_setup(sdata, skb, link_id);
 		if (ret) {
 			le16p_replace_bits(&twt_agrt->req_type, TWT_SETUP_CMD_REJECT,
 					   IEEE80211_TWT_REQTYPE_SETUP_CMD);
@@ -180,7 +180,7 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 		}
 	}
 
-	ret = drv_add_twt_setup(sdata->local, sdata, &sta->sta, twt);
+	ret = drv_add_twt_setup(sdata->local, sdata, &sta->sta, link_id, twt);
 	if (ret)
 		pr_info("%s: Handle add twt setup failed: %d\n", __func__, ret);
 
@@ -195,7 +195,7 @@ send_rsp:
 
 static void
 ieee80211_s1g_rx_twt_teardown(struct ieee80211_sub_if_data *sdata,
-			      struct sta_info *sta, struct sk_buff *skb)
+			      struct sta_info *sta, struct sk_buff *skb, u8 link_id)
 {
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 	struct ieee80211_twt_teardown *td = (void *)mgmt->u.action.u.s1g.variable;
@@ -203,17 +203,19 @@ ieee80211_s1g_rx_twt_teardown(struct ieee80211_sub_if_data *sdata,
 	if (td->all)
 		return; /* Not supported yet */
 
-	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, td);
+	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, link_id, td);
 }
 
 static void
 ieee80211_s1g_tx_twt_setup_fail(struct ieee80211_sub_if_data *sdata,
 				struct sta_info *sta, struct sk_buff *skb)
 {
+	struct ieee80211_rx_status *rx_status = IEEE80211_SKB_RXCB(skb);
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 	struct ieee80211_twt_setup *twt = (void *)mgmt->u.action.u.s1g.variable;
 	struct ieee80211_twt_params *twt_agrt = (void *)twt->params;
 	struct ieee80211_twt_teardown td;
+	u8 link_id;
 
 	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST) {
 		td.id = le16_get_bits(twt_agrt->bcast.btwt_info,
@@ -224,7 +226,8 @@ ieee80211_s1g_tx_twt_setup_fail(struct ieee80211_sub_if_data *sdata,
 				      IEEE80211_TWT_REQTYPE_FLOWID);
 	}
 
-	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, &td);
+	link_id = rx_status->link_valid ? rx_status->link_id : 0;
+	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, link_id, &td);
 
 	ieee80211_s1g_send_twt_teardown(sdata, mgmt->sa, sdata->vif.addr, &td);
 }
@@ -234,7 +237,9 @@ void ieee80211_s1g_rx_twt_action(struct ieee80211_sub_if_data *sdata,
 {
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 	struct ieee80211_local *local = sdata->local;
+	struct ieee80211_rx_status *rx_status = IEEE80211_SKB_RXCB(skb);
 	struct sta_info *sta;
+	u8 link_id;
 
 	lockdep_assert_wiphy(local->hw.wiphy);
 
@@ -242,12 +247,14 @@ void ieee80211_s1g_rx_twt_action(struct ieee80211_sub_if_data *sdata,
 	if (!sta)
 		return;
 
+	link_id = rx_status->link_valid ? rx_status->link_id : 0;
+
 	switch (mgmt->u.action.u.s1g.action_code) {
 	case WLAN_S1G_TWT_SETUP:
-		ieee80211_s1g_rx_twt_setup(sdata, sta, skb);
+		ieee80211_s1g_rx_twt_setup(sdata, sta, skb, link_id);
 		break;
 	case WLAN_S1G_TWT_TEARDOWN:
-		ieee80211_s1g_rx_twt_teardown(sdata, sta, skb);
+		ieee80211_s1g_rx_twt_teardown(sdata, sta, skb, link_id);
 		break;
 	default:
 		break;

@@ -3580,18 +3580,16 @@ ieee80211_process_rx_twt_action(struct ieee80211_rx_data *rx)
 {
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)rx->skb->data;
 	struct ieee80211_sub_if_data *sdata = rx->sdata;
+	struct ieee80211_bss_conf *bss_conf = rx->link->conf;
 
 	/* TWT actions are only supported in AP for the moment */
 	if (sdata->vif.type != NL80211_IFTYPE_AP)
 		return false;
 
-	if (!sdata->vif.bss_conf.twt_responder)
-		return false;
-
 	if (!rx->local->ops->add_twt_setup)
 		return false;
 
-	if (!sdata->vif.bss_conf.twt_responder)
+	if (!bss_conf->twt_responder)
 		return false;
 
 	if (!rx->sta)

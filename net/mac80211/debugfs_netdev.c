@@ -1038,6 +1038,7 @@ void ieee80211_debugfs_remove_netdev(struct ieee80211_sub_if_data *sdata)
 	if (!sdata->vif.debugfs_dir)
 		return;
 
+	ieee80211_debugfs_group_key_remove(&sdata->deflink, -1);
 	debugfs_remove_recursive(sdata->vif.debugfs_dir);
 	sdata->vif.debugfs_dir = NULL;
 	sdata->debugfs.subdir_stations = NULL;
@@ -1096,6 +1097,7 @@ void ieee80211_link_debugfs_remove(struct ieee80211_link_data *link)
 		return;
 	}
 
+	ieee80211_debugfs_group_key_remove(link, -1);
 	debugfs_remove_recursive(link->debugfs_dir);
 	link->debugfs_dir = NULL;
 }
@@ -1119,8 +1121,80 @@ void ieee80211_link_debugfs_drv_remove(struct ieee80211_link_data *link)
 		return;
 
 	/* Recreate the directory excluding the driver data */
+	ieee80211_debugfs_group_key_remove(link, -1);
 	debugfs_remove_recursive(link->debugfs_dir);
 	link->debugfs_dir = NULL;
 
 	ieee80211_link_debugfs_add(link);
+}
+
+void ieee80211_debugfs_group_key(struct ieee80211_link_data *link,
+				 struct ieee80211_key *key)
+{
+	char buf[32];
+
+	if (!link || !link->debugfs_dir)
+		return;
+
+	ieee80211_debugfs_group_key_remove(link, key->conf.keyidx);
+	snprintf(buf, sizeof(buf), "%s../keys/%d",
+		 link->sdata->vif.valid_links ? "../" : "", key->debugfs.cnt);
+
+	switch (key->conf.keyidx)
+	{
+	case 1:
+	case 2:
+	case 3:
+		link->multicast_key = debugfs_create_symlink("multicast_key",
+							     link->debugfs_dir, buf);
+		break;
+	case 4:
+	case 5:
+		link->mgmt_key = debugfs_create_symlink("mgmt_key",
+							link->debugfs_dir, buf);
+		break;
+	case 6:
+	case 7:
+		link->beacon_key = debugfs_create_symlink("beacon_key",
+							  link->debugfs_dir, buf);
+		break;
+	default:
+		return;
+	}
+}
+
+void ieee80211_debugfs_group_key_remove(struct ieee80211_link_data *link, s8 keyidx)
+{
+	if (!link || !link->debugfs_dir)
+		return;
+
+	switch (keyidx)
+	{
+	case -1:
+		debugfs_remove(link->multicast_key);
+		link->multicast_key = NULL;
+		debugfs_remove(link->mgmt_key);
+		link->mgmt_key = NULL;
+		debugfs_remove(link->beacon_key);
+		link->beacon_key = NULL;
+		break;
+	case 1:
+	case 2:
+	case 3:
+		debugfs_remove(link->multicast_key);
+		link->multicast_key = NULL;
+		break;
+	case 4:
+	case 5:
+		debugfs_remove(link->mgmt_key);
+		link->mgmt_key = NULL;
+		break;
+	case 6:
+	case 7:
+		debugfs_remove(link->beacon_key);
+		link->beacon_key = NULL;
+		break;
+	default:
+		return;
+	}
 }

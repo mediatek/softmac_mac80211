@@ -22,6 +22,7 @@
 #include "ieee80211_i.h"
 #include "driver-ops.h"
 #include "debugfs_key.h"
+#include "debugfs_netdev.h"
 #include "aes_ccm.h"
 #include "aes_cmac.h"
 #include "aes_gmac.h"
@@ -946,6 +947,7 @@ int ieee80211_key_link(struct ieee80211_key *key,
 	if (!ret) {
 		ieee80211_debugfs_key_add(key);
 		ieee80211_key_destroy(old_key, delay_tailroom);
+		ieee80211_debugfs_group_key(link, key);
 	} else {
 		ieee80211_key_free(key, delay_tailroom);
 	}

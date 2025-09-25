@@ -21,6 +21,10 @@ void ieee80211_link_debugfs_remove(struct ieee80211_link_data *link);
 
 void ieee80211_link_debugfs_drv_add(struct ieee80211_link_data *link);
 void ieee80211_link_debugfs_drv_remove(struct ieee80211_link_data *link);
+void ieee80211_debugfs_group_key(struct ieee80211_link_data *link,
+				 struct ieee80211_key *key);
+void ieee80211_debugfs_group_key_remove(struct ieee80211_link_data *link,
+					s8 keyidx);
 #else
 static inline void ieee80211_debugfs_remove_netdev(
 	struct ieee80211_sub_if_data *sdata)
@@ -39,6 +43,12 @@ static inline void ieee80211_link_debugfs_remove(struct ieee80211_link_data *lin
 static inline void ieee80211_link_debugfs_drv_add(struct ieee80211_link_data *link)
 {}
 static inline void ieee80211_link_debugfs_drv_remove(struct ieee80211_link_data *link)
+{}
+static inline void ieee80211_debugfs_group_key(struct ieee80211_link_data *link,
+					       struct ieee80211_key *key)
+{}
+static inline void ieee80211_debugfs_group_key_remove(struct ieee80211_link_data *link,
+						      s8 keyidx)
 {}
 #endif
 

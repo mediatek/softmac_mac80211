@@ -1116,6 +1116,9 @@ struct ieee80211_link_data {
 
 #ifdef CPTCFG_MAC80211_DEBUGFS
 	struct dentry *debugfs_dir;
+	struct dentry *multicast_key;
+	struct dentry *mgmt_key;
+	struct dentry *beacon_key;
 #endif
 };
 

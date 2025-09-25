@@ -1651,15 +1651,15 @@ rdev_skip_cac(struct cfg80211_registered_device *rdev,
 
 static inline int
 rdev_add_btwt(struct cfg80211_registered_device *rdev,
-	      struct net_device *dev,
+	      struct net_device *dev, u8 link_id,
 	      struct cfg80211_broadcast_twt_settings *settings)
 {
 	struct wiphy *wiphy = &rdev->wiphy;
 	int ret = -EOPNOTSUPP;
 
-	trace_rdev_add_btwt(wiphy, dev, settings);
+	trace_rdev_add_btwt(wiphy, dev, link_id, settings);
 	if (rdev->ops->add_btwt)
-		ret = rdev->ops->add_btwt(wiphy, dev, settings);
+		ret = rdev->ops->add_btwt(wiphy, dev, link_id, settings);
 	trace_rdev_return_int(wiphy, ret);
 
 	return ret;
@@ -1667,15 +1667,14 @@ rdev_add_btwt(struct cfg80211_registered_device *rdev,
 
 static inline int
 rdev_del_btwt(struct cfg80211_registered_device *rdev,
-	      struct net_device *dev,
-	      u8 id)
+	      struct net_device *dev, u8 link_id, u8 id)
 {
 	struct wiphy *wiphy = &rdev->wiphy;
 	int ret = -EOPNOTSUPP;
 
-	trace_rdev_del_btwt(wiphy, dev, id);
+	trace_rdev_del_btwt(wiphy, dev, link_id, id);
 	if (rdev->ops->del_btwt)
-		ret = rdev->ops->del_btwt(wiphy, dev, id);
+		ret = rdev->ops->del_btwt(wiphy, dev, link_id, id);
 	trace_rdev_return_int(wiphy, ret);
 
 	return ret;

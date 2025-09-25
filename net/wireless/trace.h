@@ -4335,9 +4335,9 @@ TRACE_EVENT(rdev_skip_cac,
 
 TRACE_EVENT(rdev_add_btwt,
 	TP_PROTO(struct wiphy *wiphy,
-		 struct net_device *netdev,
+		 struct net_device *netdev, u8 link_id,
 		 struct cfg80211_broadcast_twt_settings *settings),
-	TP_ARGS(wiphy, netdev, settings),
+	TP_ARGS(wiphy, netdev, link_id, settings),
 	TP_STRUCT__entry(
 		WIPHY_ENTRY
 		NETDEV_ENTRY
@@ -4350,6 +4350,7 @@ TRACE_EVENT(rdev_add_btwt,
 		__field(bool, flow_type)
 		__field(u8, recommendation)
 		__field(u8, persist)
+		__field(u8, link_id)
 	),
 	TP_fast_assign(
 		WIPHY_ASSIGN;
@@ -4363,33 +4364,36 @@ TRACE_EVENT(rdev_add_btwt,
 		__entry->flow_type = settings->flow_type;
 		__entry->recommendation = settings->recommendation;
 		__entry->persist = settings->persist;
+		__entry->link_id = link_id;
 	),
 	TP_printk(WIPHY_PR_FMT NETDEV_PR_FMT " id=%u min_wake_dur=%u "
 		"wake_intv_mantissa=%u wake_intv_exp=%u setup_cmd=%u trigger=%u"
-		"flow_type=%u recommendation=%u persist=%u",
+		"flow_type=%u recommendation=%u persist=%u link_id=%u",
 		  WIPHY_PR_ARG, NETDEV_PR_ARG, __entry->id, __entry->min_wake_dur,
 		__entry->wake_intv_mantissa, __entry->wake_intv_exp,
 		__entry->setup_cmd, __entry->trigger, __entry->flow_type,
-		__entry->recommendation, __entry->persist)
+		__entry->recommendation, __entry->persist, __entry->link_id)
 );
 
 TRACE_EVENT(rdev_del_btwt,
 	TP_PROTO(struct wiphy *wiphy,
 		 struct net_device *netdev,
-		 u8 id),
-	TP_ARGS(wiphy, netdev, id),
+		 u8 link_id, u8 id),
+	TP_ARGS(wiphy, netdev, link_id, id),
 	TP_STRUCT__entry(
 		WIPHY_ENTRY
 		NETDEV_ENTRY
 		__field(u8, id)
+		__field(u8, link_id)
 	),
 	TP_fast_assign(
 		WIPHY_ASSIGN;
 		NETDEV_ASSIGN;
 		__entry->id = id;
+		__entry->link_id = link_id;
 	),
-	TP_printk(WIPHY_PR_FMT NETDEV_PR_FMT " id=%u",
-		  WIPHY_PR_ARG, NETDEV_PR_ARG, __entry->id)
+	TP_printk(WIPHY_PR_FMT NETDEV_PR_FMT " id=%u link_id=%u",
+		  WIPHY_PR_ARG, NETDEV_PR_ARG, __entry->id, __entry->link_id)
 );
 #endif /* !__RDEV_OPS_TRACE || TRACE_HEADER_MULTI_READ */
 

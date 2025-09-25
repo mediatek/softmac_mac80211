@@ -320,6 +320,7 @@ struct ieee80211_rate {
  *	to this broadcast TWT Parameter set are present
  * @dl_tid_bmp: latency sensitive traffic streams in the DL direction.
  * @ul_tid_bmp: latency sensitive traffic streams in the UL direction.
+ * @link_id: the MLO link id or -1 for non-MLD
  */
 struct cfg80211_broadcast_twt_settings {
 	u8 id;
@@ -5334,9 +5335,10 @@ struct cfg80211_ops {
 	int	(*set_epcs)(struct wiphy *wiphy, struct net_device *dev,
 			    bool val);
 	void	(*skip_cac)(struct wireless_dev *wdev, unsigned int link_id);
-	int	(*add_btwt)(struct wiphy *wiphy, struct net_device *dev,
+	int	(*add_btwt)(struct wiphy *wiphy, struct net_device *dev, u8 link_id,
 			    struct cfg80211_broadcast_twt_settings *settings);
-	int	(*del_btwt)(struct wiphy *wiphy, struct net_device *dev, u8 id);
+	int	(*del_btwt)(struct wiphy *wiphy, struct net_device *dev,
+			    u8 link_id, u8 id);
 };
 
 /*

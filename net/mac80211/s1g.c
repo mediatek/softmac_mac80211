@@ -143,8 +143,8 @@ ieee80211_s1g_handle_twt_demand_setup(struct ieee80211_sub_if_data *sdata,
 		return -ENOSPC;
 
 	settings.id = ffz(sdata->deflink.btwt_active_bitmap | BIT(0));
-
-	ret = drv_add_btwt(sdata->local, sdata, &settings);
+	/* FIXME: The link id shall be decided based on the effective link. */
+	ret = drv_add_btwt(sdata->local, sdata, 0, &settings);
 	if (ret)
 		return ret;
 

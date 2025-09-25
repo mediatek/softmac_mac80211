@@ -5855,7 +5855,7 @@ void ieee80211_crit_update_notify(struct ieee80211_vif *vif, unsigned int link_i
 EXPORT_SYMBOL_GPL(ieee80211_crit_update_notify);
 
 static int
-ieee80211_add_btwt(struct wiphy *wiphy, struct net_device *dev,
+ieee80211_add_btwt(struct wiphy *wiphy, struct net_device *dev, u8 link_id,
 		   struct cfg80211_broadcast_twt_settings *settings)
 {
 	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
@@ -5864,7 +5864,7 @@ ieee80211_add_btwt(struct wiphy *wiphy, struct net_device *dev,
 
 	lockdep_assert_wiphy(sdata->local->hw.wiphy);
 
-	ret = drv_add_btwt(local, sdata, settings);
+	ret = drv_add_btwt(local, sdata, link_id, settings);
 	if (!ret)
 		sdata->deflink.btwt_active_bitmap |= BIT(settings->id);
 
@@ -5872,7 +5872,7 @@ ieee80211_add_btwt(struct wiphy *wiphy, struct net_device *dev,
 }
 
 static int
-ieee80211_del_btwt(struct wiphy *wiphy, struct net_device *dev, u8 id)
+ieee80211_del_btwt(struct wiphy *wiphy, struct net_device *dev, u8 link_id, u8 id)
 {
 	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
 	struct ieee80211_local *local = sdata->local;
@@ -5880,7 +5880,7 @@ ieee80211_del_btwt(struct wiphy *wiphy, struct net_device *dev, u8 id)
 
 	lockdep_assert_wiphy(sdata->local->hw.wiphy);
 
-	ret =  drv_del_btwt(local, sdata, id);
+	ret = drv_del_btwt(local, sdata, link_id, id);
 	if (!ret)
 		sdata->deflink.btwt_active_bitmap &= ~BIT(id);
 

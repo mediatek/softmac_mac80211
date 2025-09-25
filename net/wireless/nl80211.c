@@ -588,6 +588,7 @@ nl80211_broadcast_twt_policy[NL80211_BROADCAST_TWT_ATTR_MAX + 1] = {
 	[NL80211_BROADCAST_TWT_ATTR_PERSISTENCE] = { .type = NLA_U8 },
 	[NL80211_BROADCAST_TWT_ATTR_DL_TID_BMP] = { .type = NLA_U8 },
 	[NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP] = { .type = NLA_U8 },
+	[NL80211_BROADCAST_TWT_ATTR_LINK_ID] = { .type = NLA_U8 },
 };
 
 static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
@@ -18204,6 +18205,7 @@ nl80211_add_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
 	struct nlattr *tb[NL80211_BROADCAST_TWT_ATTR_MAX + 1];
 	struct cfg80211_broadcast_twt_settings settings;
+	u8 link_id = 0;
 	int ret;
 
 	if (wdev->iftype != NL80211_IFTYPE_AP)
@@ -18247,7 +18249,10 @@ nl80211_add_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
 	if (tb[NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP])
 		settings.ul_tid_bmp = nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP]);
 
-	return rdev_add_btwt(rdev, dev, &settings);
+	if (tb[NL80211_BROADCAST_TWT_ATTR_LINK_ID])
+		link_id = nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_LINK_ID]);
+
+	return rdev_add_btwt(rdev, dev, link_id, &settings);
 }
 
 static int
@@ -18257,7 +18262,7 @@ nl80211_del_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
 	struct net_device *dev = info->user_ptr[1];
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
 	struct nlattr *tb[NL80211_BROADCAST_TWT_ATTR_MAX + 1];
-	u8 id;
+	u8 id, link_id = 0;
 	int ret;
 
 	if (wdev->iftype != NL80211_IFTYPE_AP)
@@ -18274,7 +18279,10 @@ nl80211_del_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
 
 	id = nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_ID]);
 
-	return rdev_del_btwt(rdev, dev, id);
+	if (tb[NL80211_BROADCAST_TWT_ATTR_LINK_ID])
+		link_id = nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_LINK_ID]);
+
+	return rdev_del_btwt(rdev, dev, link_id, id);
 }
 
 #define NL80211_FLAG_NEED_WIPHY		0x01

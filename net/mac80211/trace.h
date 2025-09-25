@@ -2559,10 +2559,10 @@ TRACE_EVENT(drv_twt_teardown_request,
 
 TRACE_EVENT(drv_add_btwt,
 	TP_PROTO(struct ieee80211_local *local,
-		 struct ieee80211_sub_if_data *sdata,
+		 struct ieee80211_sub_if_data *sdata, u8 link_id,
 		 struct cfg80211_broadcast_twt_settings *settings),
 
-	TP_ARGS(local, sdata, settings),
+	TP_ARGS(local, sdata, link_id, settings),
 
 	TP_STRUCT__entry(
 		LOCAL_ENTRY
@@ -2576,6 +2576,7 @@ TRACE_EVENT(drv_add_btwt,
 		__field(bool, flow_type)
 		__field(u8, recommendation)
 		__field(u8, persist)
+		__field(u8, link_id)
 	),
 
 	TP_fast_assign(
@@ -2590,40 +2591,44 @@ TRACE_EVENT(drv_add_btwt,
 		__entry->flow_type = settings->flow_type;
 		__entry->recommendation = settings->recommendation;
 		__entry->persist = settings->persist;
+		__entry->link_id = link_id;
 	),
 
 	TP_printk(
 		LOCAL_PR_FMT VIF_PR_FMT " id=%u min_wake_dur=%u "
 		"wake_intv_mantissa=%u wake_intv_exp=%u setup_cmd=%u trigger=%u"
-		"flow_type=%u recommendation=%u persist=%u",
+		"flow_type=%u recommendation=%u persist=%u link_id=%u",
 		LOCAL_PR_ARG, VIF_PR_ARG, __entry->id, __entry->min_wake_dur,
 		__entry->wake_intv_mantissa, __entry->wake_intv_exp,
 		__entry->setup_cmd, __entry->trigger, __entry->flow_type,
-		__entry->recommendation, __entry->persist
+		__entry->recommendation, __entry->persist, __entry->link_id
 	)
 );
 
 TRACE_EVENT(drv_del_btwt,
 	TP_PROTO(struct ieee80211_local *local,
-		 struct ieee80211_sub_if_data *sdata, u8 id),
+		 struct ieee80211_sub_if_data *sdata,
+		 u8 link_id, u8 id),
 
-	TP_ARGS(local, sdata, id),
+	TP_ARGS(local, sdata, link_id, id),
 
 	TP_STRUCT__entry(
 		LOCAL_ENTRY
 		VIF_ENTRY
 		__field(u8, id)
+		__field(u8, link_id)
 	),
 
 	TP_fast_assign(
 		LOCAL_ASSIGN;
 		VIF_ASSIGN;
 		__entry->id = id;
+		__entry->link_id = link_id;
 	),
 
 	TP_printk(
-		LOCAL_PR_FMT VIF_PR_FMT " id=%u",
-		LOCAL_PR_ARG, VIF_PR_ARG, __entry->id
+		LOCAL_PR_FMT VIF_PR_FMT " id=%u link_id=%u",
+		LOCAL_PR_ARG, VIF_PR_ARG, __entry->id, __entry->link_id
 	)
 );
 

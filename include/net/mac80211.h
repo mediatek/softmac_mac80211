@@ -4980,8 +4980,9 @@ struct ieee80211_ops {
 				    struct ieee80211_sta *sta,
 				    struct ieee80211_twt_teardown *td);
 	int (*add_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
-			struct cfg80211_broadcast_twt_settings *btwt);
-	int (*del_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif, u8 id);
+			u8 link_id, struct cfg80211_broadcast_twt_settings *btwt);
+	int (*del_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+			u8 link_id, u8 id);
 	int (*set_radar_background)(struct ieee80211_hw *hw,
 				    struct cfg80211_chan_def *chandef);
 	int (*net_fill_forward_path)(struct ieee80211_hw *hw,

@@ -9295,6 +9295,7 @@ enum nl80211_crit_update_event {
  * 	TWT scheduling AP.
  * @NL80211_BROADCAST_TWT_ATTR_PERSISTENCE: Number of TBTT before this
  * 	BTWT is end. Set 255 for a persist BTWT that never ends.
+ * @NL80211_BROADCAST_TWT_ATTR_LINK_ID: MLO link ID.
  * @__NL80211_BROADCAST_TWT_ATTR_LAST: Internal
  * @NL80211_BROADCAST_TWT_ATTR_MAX: Highest attribute
  */
@@ -9312,6 +9313,7 @@ enum nl80211_broadcast_twt_attributes {
 	NL80211_BROADCAST_TWT_ATTR_PERSISTENCE,
 	NL80211_BROADCAST_TWT_ATTR_DL_TID_BMP,
 	NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP,
+	NL80211_BROADCAST_TWT_ATTR_LINK_ID,
 
 	/* keep last */
 	__NL80211_BROADCAST_TWT_ATTR_LAST,

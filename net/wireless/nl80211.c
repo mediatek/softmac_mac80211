@@ -8037,7 +8037,7 @@ static int nl80211_dump_station(struct sk_buff *skb,
 				NETLINK_CB(cb->skb).portid,
 				cb->nlh->nlmsg_seq, NLM_F_MULTI,
 				rdev, wdev->netdev, mac_addr,
-				&sinfo, false) < 0)
+				&sinfo, true) < 0)
 			goto out;
 
 		sta_idx++;

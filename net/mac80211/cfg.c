@@ -4729,10 +4729,10 @@ static int ieee80211_set_antenna(struct wiphy *wiphy, int radio_idx,
 	struct ieee80211_local *local = wiphy_priv(wiphy);
 	int ret;
 
-	if (local->started)
+	if (local->started && radio_idx == -1)
 		return -EOPNOTSUPP;
 
-	ret = drv_set_antenna(local, tx_ant, rx_ant);
+	ret = drv_set_antenna(local, radio_idx, tx_ant, rx_ant);
 	if (ret)
 		return ret;
 

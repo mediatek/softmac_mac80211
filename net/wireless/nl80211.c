@@ -3868,11 +3868,17 @@ static int nl80211_set_wiphy_radio(struct genl_info *info,
 				   struct cfg80211_registered_device *rdev,
 				   int radio_idx)
 {
+	const struct wiphy_radio *radio;
 	u32 rts_threshold = 0, old_rts, changed = 0;
 	int result;
 
 	if (!rdev->ops->set_wiphy_params)
 		return -EOPNOTSUPP;
+
+	if (radio_idx < 0 || radio_idx >= rdev->wiphy.n_radio)
+		return -EINVAL;
+
+	radio = &rdev->wiphy.radio[radio_idx];
 
 	if (info->attrs[NL80211_ATTR_WIPHY_RTS_THRESHOLD]) {
 		rts_threshold = nla_get_u32(
@@ -3888,7 +3894,31 @@ static int nl80211_set_wiphy_radio(struct genl_info *info,
 	if (result)
 		rdev->wiphy.radio_cfg[radio_idx].rts_threshold = old_rts;
 
-	return 0;
+	if (info->attrs[NL80211_ATTR_WIPHY_ANTENNA_TX] &&
+	    info->attrs[NL80211_ATTR_WIPHY_ANTENNA_RX]) {
+		u32 tx_ant, rx_ant, radio_antenna_mask;
+
+		if (!radio->antenna_mask || !rdev->ops->set_antenna)
+			return -EOPNOTSUPP;
+
+		/* Restore the shifted radio->antenna_mask */
+		radio_antenna_mask = radio->antenna_mask >> __ffs(radio->antenna_mask);
+		tx_ant = nla_get_u32(info->attrs[NL80211_ATTR_WIPHY_ANTENNA_TX]);
+		rx_ant = nla_get_u32(info->attrs[NL80211_ATTR_WIPHY_ANTENNA_RX]);
+
+		/* reject antenna configurations which don't match the
+		 * available antenna masks, except for the "all" mask */
+		if ((~tx_ant && (tx_ant & ~radio_antenna_mask)) ||
+		    (~rx_ant && (rx_ant & ~radio_antenna_mask)))
+			return -EINVAL;
+
+		tx_ant = tx_ant & radio_antenna_mask;
+		rx_ant = rx_ant & radio_antenna_mask;
+
+		result = rdev_set_antenna(rdev, radio_idx, tx_ant, rx_ant);
+	}
+
+	return result;
 }
 
 static int nl80211_set_wiphy(struct sk_buff *skb, struct genl_info *info)

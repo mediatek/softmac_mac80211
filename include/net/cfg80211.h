@@ -9074,8 +9074,8 @@ void cfg80211_cac_event(struct net_device *netdev,
  *
  */
 void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
-				   const struct cfg80211_chan_def *bss_chandef,
-				   const struct cfg80211_chan_def *csa_chandef,
+				   struct cfg80211_chan_def *bss_chandef,
+				   struct cfg80211_chan_def *csa_chandef,
 				   unsigned long csa_time,
 				   bool associated);
 

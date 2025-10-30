@@ -1634,8 +1634,8 @@ bool cfg80211_any_usable_channels(struct wiphy *wiphy,
 EXPORT_SYMBOL(cfg80211_any_usable_channels);
 
 void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
-				   const struct cfg80211_chan_def *bss_chandef,
-				   const struct cfg80211_chan_def *csa_chandef,
+				   struct cfg80211_chan_def *bss_chandef,
+				   struct cfg80211_chan_def *csa_chandef,
 				   unsigned long csa_time,
 				   bool associated)
 {
@@ -1654,7 +1654,7 @@ void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
 	/* assume csa channel is cac completed */
 	if (csa_active &&
 	    (cfg80211_chandef_dfs_usable(wiphy, csa_chandef) ||
-	    cfg80211_chandef_dfs_available(wiphy, csa_chandef))) {
+	     cfg80211_chandef_dfs_available(wiphy, csa_chandef))) {
 		cfg80211_set_dfs_state(wiphy, csa_chandef, NL80211_DFS_AVAILABLE);
 		/* avoid the dfs state from expired during csa countdown */
 		cfg80211_update_last_available(wiphy, csa_chandef, csa_time);
@@ -1674,10 +1674,12 @@ void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
 	}
 
 	/* avoid setting the dfs state to usable
-	 * when other interfaces still operate on this channel
+	 * when other interfaces still operate on this channel,
+	 * or when the csa channel overlaps with the current channel
 	 */
 	if (dfs_state == NL80211_DFS_USABLE &&
-	    (cfg80211_is_wiphy_oper_chan(wiphy, bss_chandef->chan) ||
+	    ((csa_active && cfg80211_is_sub_chan(csa_chandef, bss_chandef->chan, false)) ||
+	     cfg80211_is_wiphy_oper_chan(wiphy, bss_chandef->chan) ||
 	     cfg80211_offchan_chain_is_active(rdev, bss_chandef->chan)))
 		return;
 

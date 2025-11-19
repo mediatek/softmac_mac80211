@@ -2860,6 +2860,7 @@ enum nl80211_commands {
  *
  * @NL80211_ATTR_EML_CAPABILITY: EML Capability information (u16)
  * @NL80211_ATTR_MLD_CAPA_AND_OPS: MLD Capabilities and Operations (u16)
+ * @NL80211_ATTR_EXT_MLD_CAPA_AND_OPS: Extended MLD Capabilities and Operations (u16)
  *
  * @NL80211_ATTR_TX_HW_TIMESTAMP: Hardware timestamp for TX operation in
  *	nanoseconds (u64). This is the device clock timestamp so it will
@@ -3623,6 +3624,7 @@ enum nl80211_attrs {
 
 	NL80211_ATTR_DFS_STATE_UPDATE,
 	NL80211_ATTR_BROADCAST_TWT_PARAMS,
+	NL80211_ATTR_EXT_MLD_CAPA_AND_OPS,
 
 	__NL80211_ATTR_AFTER_LAST,
 	NUM_NL80211_ATTR = __NL80211_ATTR_AFTER_LAST,

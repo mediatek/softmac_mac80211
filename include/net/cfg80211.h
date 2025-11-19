@@ -5724,6 +5724,7 @@ struct wiphy_vendor_command {
  * @extended_capabilities_len: length of the extended capabilities
  * @eml_capabilities: EML capabilities (for MLO)
  * @mld_capa_and_ops: MLD capabilities and operations (for MLO)
+ * @extended_mld_capa_and_ops: Extended MLD capabilities and Operations (for MLO)
  */
 struct wiphy_iftype_ext_capab {
 	enum nl80211_iftype iftype;
@@ -5732,6 +5733,7 @@ struct wiphy_iftype_ext_capab {
 	u8 extended_capabilities_len;
 	u16 eml_capabilities;
 	u16 mld_capa_and_ops;
+	u16 ext_mld_capa_and_ops;
 };
 
 /**

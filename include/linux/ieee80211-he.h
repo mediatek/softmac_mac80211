@@ -103,6 +103,11 @@ struct ieee80211_twt_teardown {
 	u8 all:1;
 } __packed;
 
+enum ieee80211_btwt_recommendation {
+	IEEE80211_BTWT_RECOMM_NO_CONSTRAINT = 0,
+	IEEE80211_BTWT_RECOMM_RTWT_SP = 4,
+};
+
 /**
  * struct ieee80211_he_cap_elem - HE capabilities element
  * @mac_cap_info: HE MAC Capabilities Information

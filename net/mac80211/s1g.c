@@ -166,7 +166,28 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_mgmt *mgmt = (void *)skb->data;
 	struct ieee80211_twt_setup *twt = (void *)mgmt->u.action.u.s1g.variable;
 	struct ieee80211_twt_params *twt_agrt = (void *)twt->params;
+	struct ieee80211_bss_conf *bss_conf;
+	bool he_btwt, eht_rtwt;
 	int ret;
+
+	rcu_read_lock();
+	bss_conf = rcu_dereference(sdata->vif.link_conf[link_id]);
+	if (!bss_conf) {
+		rcu_read_unlock();
+		return;
+	}
+	he_btwt = bss_conf->he_btwt_supported;
+	eht_rtwt = bss_conf->eht_rtwt_supported;
+	rcu_read_unlock();
+
+	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST) {
+		if (!he_btwt)
+			return;
+
+		if ((le16_get_bits(twt_agrt->req_type, IEEE80211_TWT_REQTYPE_BTWT_RECM) ==
+		    IEEE80211_BTWT_RECOMM_RTWT_SP) && !eht_rtwt)
+			return;
+	}
 
 	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST &&
 	    (le16_get_bits(twt_agrt->req_type, IEEE80211_TWT_REQTYPE_SETUP_CMD) ==
@@ -199,6 +220,20 @@ ieee80211_s1g_rx_twt_teardown(struct ieee80211_sub_if_data *sdata,
 {
 	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
 	struct ieee80211_twt_teardown *td = (void *)mgmt->u.action.u.s1g.variable;
+	struct ieee80211_bss_conf *bss_conf;
+	bool he_btwt;
+
+	rcu_read_lock();
+	bss_conf = rcu_dereference(sdata->vif.link_conf[link_id]);
+	if (!bss_conf) {
+		rcu_read_unlock();
+		return;
+	}
+	he_btwt = bss_conf->he_btwt_supported;
+	rcu_read_unlock();
+
+	if (td->neg_type == IEEE80211_TWT_NEGO_TYPE_BTWT_MBR_MGMT && !he_btwt)
+		return;
 
 	if (td->all)
 		return; /* Not supported yet */

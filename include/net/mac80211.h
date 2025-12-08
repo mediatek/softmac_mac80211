@@ -763,6 +763,8 @@ struct ieee80211_parsed_tpe {
  *	(as opposed to hearing its value from another link's beacon).
  * @s1g_long_beacon_period: number of beacon intervals between each long
  *	beacon transmission.
+ * @he_btwt_supported: does this BSS support HE broadcast TWT
+ * @eht_rtwt_supported: does this BSS support EHT restricted TWT
  */
 struct ieee80211_bss_conf {
 	struct ieee80211_vif *vif;
@@ -867,6 +869,9 @@ struct ieee80211_bss_conf {
 	u8 bss_param_ch_cnt_link_id;
 
 	u8 s1g_long_beacon_period;
+
+	bool he_btwt_supported;
+	bool eht_rtwt_supported;
 };
 
 /**

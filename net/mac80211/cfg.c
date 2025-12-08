@@ -1577,6 +1577,9 @@ static int ieee80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
 		link_conf->he_full_ul_mumimo =
 			params->he_cap->phy_cap_info[2] &
 				IEEE80211_HE_PHY_CAP2_UL_MU_FULL_MU_MIMO;
+		link_conf->he_btwt_supported =
+			params->he_cap->mac_cap_info[2] &
+				IEEE80211_HE_MAC_CAP2_BCAST_TWT;
 	}
 
 	if (params->eht_cap) {
@@ -1604,6 +1607,9 @@ static int ieee80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
 		link_conf->eht_disable_mcs15 =
 			u8_get_bits(params->eht_oper->params,
 				    IEEE80211_EHT_OPER_MCS15_DISABLE);
+		link_conf->eht_rtwt_supported =
+			params->eht_cap->fixed.mac_cap_info[0] &
+				IEEE80211_EHT_MAC_CAP0_RESTRICTED_TWT;
 	} else {
 		link_conf->eht_su_beamformer = false;
 		link_conf->eht_su_beamformee = false;

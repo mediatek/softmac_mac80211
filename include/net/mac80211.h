@@ -800,6 +800,8 @@ struct ieee80211_bss_npca_params {
  * @s1g_long_beacon_period: number of beacon intervals between each long
  *	beacon transmission.
  * @npca: NPCA parameters
+ * @he_btwt_supported: does this BSS support HE broadcast TWT
+ * @eht_rtwt_supported: does this BSS support EHT restricted TWT
  */
 struct ieee80211_bss_conf {
 	struct ieee80211_vif *vif;
@@ -908,6 +910,8 @@ struct ieee80211_bss_conf {
 	u8 s1g_long_beacon_period;
 
 	struct ieee80211_bss_npca_params npca;
+	bool he_btwt_supported;
+	bool eht_rtwt_supported;
 };
 
 #define IEEE80211_NAN_MAX_CHANNELS 3

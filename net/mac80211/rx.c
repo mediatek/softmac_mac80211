@@ -3621,6 +3621,31 @@ ieee80211_process_rx_twt_action(struct ieee80211_rx_data *rx)
 			break;
 
 		return true; /* queue the frame */
+	case WLAN_S1G_TWT_INFORMATION: {
+		static const u8 next_twt_len[] = {0, 4, 6, 8};
+		struct ieee80211_twt_info *twt_info;
+		u8 next_twt_size;
+
+		if (!rx->local->ops->twt_information)
+			break;
+
+		if (rx->skb->len < IEEE80211_MIN_ACTION_SIZE +
+				   1 + /* action code */
+				   sizeof(struct ieee80211_twt_info))
+			break;
+
+		twt_info = (void *)mgmt->u.action.u.s1g.variable;
+		next_twt_size = FIELD_GET(IEEE80211_TWT_INFO_NEXT_TWT_SIZE,
+					  twt_info->control);
+
+		if (rx->skb->len < IEEE80211_MIN_ACTION_SIZE +
+				   1 + /* action code */
+				   sizeof(struct ieee80211_twt_info) +
+				   next_twt_len[next_twt_size])
+			break;
+
+		return true; /* queue the frame */
+	}
 	default:
 		break;
 	}
@@ -3897,6 +3922,7 @@ ieee80211_rx_h_action(struct ieee80211_rx_data *rx)
 		switch (mgmt->u.action.u.s1g.action_code) {
 		case WLAN_S1G_TWT_SETUP:
 		case WLAN_S1G_TWT_TEARDOWN:
+		case WLAN_S1G_TWT_INFORMATION:
 			if (ieee80211_process_rx_twt_action(rx))
 				goto queue;
 			break;

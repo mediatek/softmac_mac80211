@@ -2565,6 +2565,35 @@ TRACE_EVENT(drv_twt_teardown_request,
 	)
 );
 
+TRACE_EVENT(drv_twt_information,
+	TP_PROTO(struct ieee80211_local *local,
+		 struct ieee80211_sta *sta,
+		 u8 link_id,
+		 struct ieee80211_twt_info *twt_info),
+
+	TP_ARGS(local, sta, link_id, twt_info),
+
+	TP_STRUCT__entry(
+		LOCAL_ENTRY
+		STA_ENTRY
+		__field(u8, link_id)
+		__field(u8, control)
+	),
+
+	TP_fast_assign(
+		LOCAL_ASSIGN;
+		STA_NAMED_ASSIGN(sta);
+		__entry->link_id = link_id;
+		__entry->control = twt_info->control;
+	),
+
+	TP_printk(
+		LOCAL_PR_FMT STA_PR_FMT " (link %d) control:0x%02x",
+		LOCAL_PR_ARG, STA_PR_ARG, __entry->link_id,
+		__entry->control
+	)
+);
+
 TRACE_EVENT(drv_add_btwt,
 	TP_PROTO(struct ieee80211_local *local,
 		 struct ieee80211_sub_if_data *sdata, u8 link_id,

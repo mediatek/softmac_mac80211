@@ -1679,6 +1679,21 @@ static inline int drv_twt_teardown_request(struct ieee80211_local *local,
 	return ret;
 }
 
+static inline void drv_twt_information(struct ieee80211_local *local,
+				       struct ieee80211_sub_if_data *sdata,
+				       struct ieee80211_sta *sta, u8 link_id,
+				       struct ieee80211_twt_info *twt_info)
+{
+	might_sleep();
+	lockdep_assert_wiphy(local->hw.wiphy);
+	if (!check_sdata_in_driver(sdata))
+		return;
+
+	trace_drv_twt_information(local, sta, link_id, twt_info);
+	local->ops->twt_information(&local->hw, sta, link_id, twt_info);
+	trace_drv_return_void(local);
+}
+
 static inline int drv_add_btwt(struct ieee80211_local *local,
 			       struct ieee80211_sub_if_data *sdata, u8 link_id,
 			       struct cfg80211_broadcast_twt_settings *settings)

@@ -4566,6 +4566,9 @@ struct ieee80211_prep_tx_info {
  *	twt structure.
  * @twt_teardown_request: Update the hw with TWT teardown request received
  *	from the peer.
+ * @twt_information: Handle TWT Information frame received from the peer.
+ *	This is used to suspend or resume a TWT agreement. The driver is
+ *	responsible for parsing the TWT Information element.
  * @set_radar_background: Configure dedicated offchannel chain available for
  *	radar/CAC detection on some hw. This chain can't be used to transmit
  *	or receive frames and it is bounded to a running wdev.
@@ -4984,6 +4987,9 @@ struct ieee80211_ops {
 	int (*twt_teardown_request)(struct ieee80211_hw *hw,
 				    struct ieee80211_sta *sta, u8 link_id,
 				    struct ieee80211_twt_teardown *td);
+	void (*twt_information)(struct ieee80211_hw *hw,
+				struct ieee80211_sta *sta, u8 link_id,
+				struct ieee80211_twt_info *twt_info);
 	int (*add_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 			u8 link_id, struct cfg80211_broadcast_twt_settings *btwt);
 	int (*del_btwt)(struct ieee80211_hw *hw, struct ieee80211_vif *vif,

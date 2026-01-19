@@ -208,8 +208,9 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 send_rsp:
 	le16p_replace_bits(&twt_agrt->req_type, TWT_RESPONDING_OR_SCHEDULING_STA,
 			   IEEE80211_TWT_REQTYPE_REQUEST);
-	/* TWT Information not supported yet */
-	twt->control |= IEEE80211_TWT_CONTROL_RX_DISABLED;
+
+	u8p_replace_bits(&twt->control, !sdata->local->ops->twt_information,
+			 IEEE80211_TWT_CONTROL_RX_DISABLED);
 
 	ieee80211_s1g_send_twt_setup(sdata, mgmt->sa, sdata->vif.addr, twt);
 }
@@ -239,6 +240,26 @@ ieee80211_s1g_rx_twt_teardown(struct ieee80211_sub_if_data *sdata,
 		return; /* Not supported yet */
 
 	drv_twt_teardown_request(sdata->local, sdata, &sta->sta, link_id, td);
+}
+
+static void
+ieee80211_s1g_rx_twt_info(struct ieee80211_sub_if_data *sdata,
+			  struct sta_info *sta, struct sk_buff *skb, u8 link_id)
+{
+	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)skb->data;
+	struct ieee80211_twt_info *twt_info;
+	u8 resp_requested, next_twt_req;
+
+	twt_info = (void *)mgmt->u.action.u.s1g.variable;
+
+	resp_requested = FIELD_GET(IEEE80211_TWT_INFO_RESP_REQ, twt_info->control);
+	next_twt_req = FIELD_GET(IEEE80211_TWT_INFO_NEXT_TWT_REQ, twt_info->control);
+	if (resp_requested || next_twt_req) {
+		pr_info("Unsupported field in TWT Information element\n");
+		return;
+	}
+
+	drv_twt_information(sdata->local, sdata, &sta->sta, link_id, twt_info);
 }
 
 static void
@@ -290,6 +311,9 @@ void ieee80211_s1g_rx_twt_action(struct ieee80211_sub_if_data *sdata,
 		break;
 	case WLAN_S1G_TWT_TEARDOWN:
 		ieee80211_s1g_rx_twt_teardown(sdata, sta, skb, link_id);
+		break;
+	case WLAN_S1G_TWT_INFORMATION:
+		ieee80211_s1g_rx_twt_info(sdata, sta, skb, link_id);
 		break;
 	default:
 		break;

@@ -1726,6 +1726,7 @@ static void ieee80211_iface_process_skb(struct ieee80211_local *local,
 		switch (mgmt->u.action.u.s1g.action_code) {
 		case WLAN_S1G_TWT_TEARDOWN:
 		case WLAN_S1G_TWT_SETUP:
+		case WLAN_S1G_TWT_INFORMATION:
 			ieee80211_s1g_rx_twt_action(sdata, skb);
 			break;
 		default:

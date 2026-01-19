@@ -103,6 +103,21 @@ struct ieee80211_twt_teardown {
 	u8 all:1;
 } __packed;
 
+#define IEEE80211_TWT_INFO_FLOW_ID		GENMASK(2, 0)
+#define IEEE80211_TWT_INFO_RESP_REQ		BIT(3)
+#define IEEE80211_TWT_INFO_NEXT_TWT_REQ		BIT(4)
+#define IEEE80211_TWT_INFO_NEXT_TWT_SIZE	GENMASK(6, 5)
+
+#define IEEE80211_TWT_INFO_NEXT_TWT_SIZE_0	0
+#define IEEE80211_TWT_INFO_NEXT_TWT_SIZE_32	1
+#define IEEE80211_TWT_INFO_NEXT_TWT_SIZE_48	2
+#define IEEE80211_TWT_INFO_NEXT_TWT_SIZE_64	3
+
+struct ieee80211_twt_info {
+	u8 control;
+	u8 next_twt[];
+} __packed;
+
 enum ieee80211_btwt_recommendation {
 	IEEE80211_BTWT_RECOMM_NO_CONSTRAINT = 0,
 	IEEE80211_BTWT_RECOMM_RTWT_SP = 4,

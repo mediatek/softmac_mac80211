@@ -1079,11 +1079,6 @@ static int ieee80211_set_monitor_channel(struct wiphy *wiphy,
 			goto done;
 	}
 
-	if (rcu_access_pointer(sdata->deflink.conf->chanctx_conf) &&
-	    cfg80211_chandef_identical(&sdata->vif.bss_conf.chanreq.oper,
-				       &chanreq.oper))
-		return 0;
-
 	ieee80211_link_release_channel(&sdata->deflink);
 	ret = ieee80211_link_use_channel(&sdata->deflink, &chanreq,
 					 IEEE80211_CHANCTX_SHARED);

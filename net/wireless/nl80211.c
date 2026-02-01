@@ -6936,6 +6936,8 @@ static int nl80211_start_ap(struct sk_buff *skb, struct genl_info *info)
 		goto out;
 	}
 
+	cfg80211_set_dfs_concurrent(&rdev->wiphy, &params->chandef);
+
 	beacon_check.iftype = wdev->iftype;
 	beacon_check.relax = true;
 	beacon_check.reg_power =

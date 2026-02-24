@@ -2095,21 +2095,9 @@ static const struct platform_device_id wl18xx_id_table[] = {
 };
 MODULE_DEVICE_TABLE(platform, wl18xx_id_table);
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_wlcore_remove(struct platform_device *pdev) {
-	wlcore_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver wl18xx_driver = {
 	.probe		= wl18xx_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove		= wlcore_remove,
-#else
-	.remove = bp_wlcore_remove,
-#endif
-	
 	.id_table	= wl18xx_id_table,
 	.driver		= {
 		.name	= "wl18xx_driver",

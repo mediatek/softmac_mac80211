@@ -2,8 +2,6 @@
 obj-$(CPTCFG_ATH12K) += ath12k.o
 ath12k-y += core.o \
 	    hal.o \
-	    hal_tx.o \
-	    hal_rx.o \
 	    wmi.o \
 	    mac.o \
 	    reg.o \
@@ -12,11 +10,12 @@ ath12k-y += core.o \
 	    dp.o  \
 	    dp_tx.o \
 	    dp_rx.o \
+	    dp_htt.o \
+	    dp_peer.o \
 	    debug.o \
 	    ce.o \
 	    peer.o \
 	    dbring.o \
-	    hw.o \
 	    mhi.o \
 	    pci.o \
 	    dp_mon.o \
@@ -24,6 +23,9 @@ ath12k-y += core.o \
 	    p2p.o
 
 ath12k-$(CPTCFG_ATH12K_AHB) += ahb.o
+
+obj-$(CPTCFG_ATH12K) += wifi7/
+
 ath12k-$(CPTCFG_ATH12K_DEBUGFS) += debugfs.o debugfs_htt_stats.o debugfs_sta.o
 ath12k-$(CONFIG_ACPI) += acpi.o
 ath12k-$(CPTCFG_ATH12K_TRACING) += trace.o

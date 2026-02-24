@@ -58,7 +58,6 @@ static ssize_t bt_coex_state_store(struct device *dev,
 		goto out;
 
 	wl1271_acx_sg_enable(wl, wl->sg_enabled);
-	pm_runtime_mark_last_busy(wl->dev);
 	pm_runtime_put_autosuspend(wl->dev);
 
  out:
@@ -119,25 +118,9 @@ static ssize_t wl1271_sysfs_read_fwlog(struct file *filp, struct kobject *kobj,
 	return len;
 }
 
-#if LINUX_VERSION_IS_LESS(6,14,0)
-static ssize_t bp_wl1271_sysfs_read_fwlog(struct file *filp,
-					  struct kobject *kobj,
-					  struct bin_attribute *bin_attr,
-					  char *buffer, loff_t pos,
-					  size_t count) {
-	return wl1271_sysfs_read_fwlog(filp, kobj,
-				       (const struct bin_attribute *)bin_attr,
-				       buffer, pos, count);
-}
-#endif
 static const struct bin_attribute fwlog_attr = {
 	.attr = { .name = "fwlog", .mode = 0400 },
-#if LINUX_VERSION_IS_GEQ(6,14,0)
 	.read = wl1271_sysfs_read_fwlog,
-#else
-	.read = bp_wl1271_sysfs_read_fwlog,
-#endif
-
 };
 
 int wlcore_sysfs_init(struct wl1271 *wl)

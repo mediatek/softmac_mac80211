@@ -941,6 +941,7 @@ static int mwifiex_sdio_suspend(struct device *dev)
 	return ret;
 }
 
+#if LINUX_VERSION_IS_GEQ(4,17,0)
 static void mwifiex_sdio_coredump(struct device *dev)
 {
 	struct sdio_func *func = dev_to_sdio_func(dev);
@@ -951,6 +952,7 @@ static void mwifiex_sdio_coredump(struct device *dev)
 			      &card->work_flags))
 		schedule_work(&card->work);
 }
+#endif
 
 /* WLAN IDs */
 static const struct sdio_device_id mwifiex_ids[] = {
@@ -990,7 +992,9 @@ static struct sdio_driver mwifiex_sdio = {
 	.probe = mwifiex_sdio_probe,
 	.remove = mwifiex_sdio_remove,
 	.drv = {
+#if LINUX_VERSION_IS_GEQ(4,17,0)
 		.coredump = mwifiex_sdio_coredump,
+#endif
 		.pm = &mwifiex_sdio_pm_ops,
 	}
 };

@@ -1251,7 +1251,9 @@ static struct sdio_driver brcmf_sdmmc_driver = {
 	.id_table = brcmf_sdmmc_ids,
 	.drv = {
 		.pm = pm_sleep_ptr(&brcmf_sdio_pm_ops),
+#if LINUX_VERSION_IS_GEQ(4,17,0)
 		.coredump = brcmf_dev_coredump,
+#endif
 	},
 };
 

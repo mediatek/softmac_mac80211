@@ -290,6 +290,13 @@ static void wilc_bus_remove(struct spi_device *spi)
 	wiphy_free(wilc->wiphy);
 	kfree(spi_priv);
 }
+#if LINUX_VERSION_IS_LESS(5,18,0)
+static int bp_wilc_bus_remove(struct spi_device *spi){
+	wilc_bus_remove(spi);
+
+	return 0;
+}
+#endif
 
 static const struct of_device_id wilc_of_match[] = {
 	{ .compatible = "microchip,wilc1000", },
@@ -310,7 +317,12 @@ static struct spi_driver wilc_spi_driver = {
 	},
 	.id_table = wilc_spi_id,
 	.probe =  wilc_bus_probe,
+#if LINUX_VERSION_IS_GEQ(5,18,0)
 	.remove = wilc_bus_remove,
+#else
+	.remove = bp_wilc_bus_remove,
+#endif
+
 };
 module_spi_driver(wilc_spi_driver);
 MODULE_DESCRIPTION("Atmel WILC1000 SPI wireless driver");

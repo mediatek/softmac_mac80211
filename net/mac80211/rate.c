@@ -253,6 +253,10 @@ static ssize_t rcname_read(struct file *file, char __user *userbuf,
 }
 
 const struct debugfs_short_fops rcname_ops = {
+#if LINUX_VERSION_IS_LESS(6,13,0)
+	.open = simple_open,
+#endif
+	
 	.read = rcname_read,
 	.llseek = default_llseek,
 };

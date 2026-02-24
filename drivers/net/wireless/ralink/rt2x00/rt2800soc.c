@@ -92,8 +92,12 @@ static int rt2800soc_set_device_state(struct rt2x00_dev *rt2x00dev,
 
 static int rt2800soc_read_eeprom(struct rt2x00_dev *rt2x00dev)
 {
-	void __iomem *base_addr = ioremap(0x1F040000, EEPROM_SIZE);
+	void __iomem *base_addr;
 
+	if (!rt2800_read_eeprom_nvmem(rt2x00dev))
+		return 0;
+
+	base_addr = ioremap(0x1F040000, EEPROM_SIZE);
 	if (!base_addr)
 		return -ENOMEM;
 
@@ -341,25 +345,13 @@ static const struct of_device_id rt2880_wmac_match[] = {
 };
 MODULE_DEVICE_TABLE(of, rt2880_wmac_match);
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_rt2800soc_remove(struct platform_device *pdev) {
-	rt2800soc_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver rt2800soc_driver = {
 	.driver		= {
 		.name		= "rt2800_wmac",
 		.of_match_table = rt2880_wmac_match,
 	},
 	.probe		= rt2800soc_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove		= rt2800soc_remove,
-#else
-	.remove = bp_rt2800soc_remove,
-#endif
-
 #ifdef CONFIG_PM
 	.suspend	= rt2800soc_suspend,
 	.resume		= rt2800soc_resume,

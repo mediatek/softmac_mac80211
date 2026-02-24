@@ -1061,12 +1061,18 @@ VISIBLE_IF_IWLWIFI_KUNIT const struct iwl_dev_info iwl_dev_info_table[] = {
 
 /* WH RF */
 	IWL_DEV_INFO(iwl_rf_wh, iwl_be211_name, RF_TYPE(WH)),
+	IWL_DEV_INFO(iwl_rf_wh_non_eht, iwl_ax221_name, RF_TYPE(WH),
+		     SUBDEV(0x0514)),
+	IWL_DEV_INFO(iwl_rf_wh_non_eht, iwl_ax221_name, RF_TYPE(WH),
+		     SUBDEV(0x4514)),
 	IWL_DEV_INFO(iwl_rf_wh_160mhz, iwl_be213_name, RF_TYPE(WH), BW_LIMITED),
 
 /* PE RF */
 	IWL_DEV_INFO(iwl_rf_pe, iwl_bn201_name, RF_TYPE(PE)),
-	IWL_DEV_INFO(iwl_rf_pe, iwl_be223_name, RF_TYPE(PE), SUBDEV(0x0524)),
-	IWL_DEV_INFO(iwl_rf_pe, iwl_be221_name, RF_TYPE(PE), SUBDEV(0x0324)),
+	IWL_DEV_INFO(iwl_rf_pe, iwl_be223_name, RF_TYPE(PE),
+		     SUBDEV_MASKED(0x0524, 0xFFF)),
+	IWL_DEV_INFO(iwl_rf_pe, iwl_bn203_name, RF_TYPE(PE),
+		     SUBDEV_MASKED(0x0324, 0xFFF)),
 
 /* Killer */
 	IWL_DEV_INFO(iwl_rf_wh, iwl_killer_be1775s_name, SUBDEV(0x1776)),
@@ -1306,6 +1312,7 @@ static const struct dev_pm_ops iwl_dev_pm_ops = {
 
 #endif /* CONFIG_PM_SLEEP */
 
+#if LINUX_VERSION_IS_GEQ(4,17,0)
 static void iwl_pci_dump(struct device *device)
 {
 	struct pci_dev *pdev = to_pci_dev(device);
@@ -1313,6 +1320,7 @@ static void iwl_pci_dump(struct device *device)
 
 	iwl_op_mode_dump(trans->op_mode);
 }
+#endif
 
 static struct pci_driver iwl_pci_driver = {
 	.name = DRV_NAME,
@@ -1320,7 +1328,9 @@ static struct pci_driver iwl_pci_driver = {
 	.probe = iwl_pci_probe,
 	.remove = iwl_pci_remove,
 	.driver.pm = IWL_PM_OPS,
+#if LINUX_VERSION_IS_GEQ(4,17,0)
 	.driver.coredump = iwl_pci_dump,
+#endif
 };
 
 int __must_check iwl_pci_register_driver(void)

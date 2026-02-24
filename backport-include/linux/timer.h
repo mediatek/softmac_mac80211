@@ -35,7 +35,7 @@ static inline void setup_deferrable_timer_key(struct timer_list *timer,
 #define TIMER_DEFERRABLE	1
 #endif
 
-#if !defined(from_timer) && !defined(timer_container_of)
+#ifndef from_timer
 #define TIMER_DATA_TYPE          unsigned long
 #define TIMER_FUNC_TYPE          void (*)(TIMER_DATA_TYPE)
 
@@ -55,10 +55,13 @@ static inline void timer_setup(struct timer_list *timer,
 			    (TIMER_DATA_TYPE) timer);
 #endif
 }
+
+#define from_timer(var, callback_timer, timer_fieldname) \
+	container_of(callback_timer, typeof(*var), timer_fieldname)
 #endif
 
-#ifndef timer_container_of
-#define timer_container_of(var, callback_timer, timer_fieldname) \
+#if LINUX_VERSION_IS_LESS(6,16,0)
+#define timer_container_of(var, callback_timer, timer_fieldname)	\
 	container_of(callback_timer, typeof(*var), timer_fieldname)
 #endif
 
@@ -85,6 +88,11 @@ static inline int timer_delete_sync(struct timer_list *timer)
 static inline int timer_shutdown_sync(struct timer_list *timer)
 {
 	return del_timer_sync(timer);
+}
+
+static inline int timer_delete(struct timer_list *timer)
+{
+	return del_timer(timer);
 }
 #endif /* < 6.2 */
 

@@ -31,12 +31,14 @@ static ssize_t sta_ ##name## _read(struct file *file,			\
 
 #define STA_OPS(name)							\
 static const struct debugfs_short_fops sta_ ##name## _ops = {		\
+	.open = simple_open,						\
 	.read = sta_##name##_read,					\
 	.llseek = generic_file_llseek,					\
 }
 
 #define STA_OPS_RW(name)						\
 static const struct debugfs_short_fops sta_ ##name## _ops = {		\
+	.open = simple_open,						\
 	.read = sta_##name##_read,					\
 	.write = sta_##name##_write,					\
 	.llseek = generic_file_llseek,					\
@@ -441,6 +443,7 @@ STA_OPS_RW(agg_status);
 /* link sta attributes */
 #define LINK_STA_OPS(name)						\
 static const struct debugfs_short_fops link_sta_ ##name## _ops = {		\
+	.open = simple_open,						\
 	.read = link_sta_##name##_read,					\
 	.llseek = generic_file_llseek,					\
 }

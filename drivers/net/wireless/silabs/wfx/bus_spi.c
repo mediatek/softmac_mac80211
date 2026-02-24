@@ -282,6 +282,13 @@ static void wfx_spi_remove(struct spi_device *func)
 
 	wfx_release(bus->core);
 }
+#if LINUX_VERSION_IS_LESS(5,18,0)
+static int bp_wfx_spi_remove(struct spi_device *spi){
+	wfx_spi_remove(spi);
+
+	return 0;
+}
+#endif
 
 /* For dynamic driver binding, kernel does not use OF to match driver. It only
  * use modalias and modalias is a copy of 'compatible' DT node with vendor
@@ -312,7 +319,12 @@ static DEFINE_SIMPLE_DEV_PM_OPS(wfx_spi_pm_ops, wfx_spi_suspend, wfx_spi_resume)
 struct spi_driver wfx_spi_driver = {
 	.id_table = wfx_spi_id,
 	.probe = wfx_spi_probe,
+#if LINUX_VERSION_IS_GEQ(5,18,0)
 	.remove = wfx_spi_remove,
+#else
+	.remove = bp_wfx_spi_remove,
+#endif
+	
 	.driver = {
 		.name = "wfx-spi",
 		.of_match_table = of_match_ptr(wfx_spi_of_match),

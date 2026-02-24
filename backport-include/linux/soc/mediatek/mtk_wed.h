@@ -2,7 +2,7 @@
 #define __BACKPORT_MTK_WED_H
 #include <linux/version.h>
 
-#if LINUX_VERSION_IS_GEQ(5,19,0)
+#if LINUX_VERSION_IS_GEQ(5,4,0)
 #include_next <linux/soc/mediatek/mtk_wed.h>
 #else
 #include <linux/kernel.h>
@@ -53,6 +53,6 @@ static inline bool mtk_wed_device_active(struct mtk_wed_device *dev)
 #define mtk_wed_device_irq_get(_dev, _mask) 0
 #define mtk_wed_device_irq_set_mask(_dev, _mask) do {} while (0)
 
-#endif /* >= 5.19.0 */
+#endif /* >= 5.4.0 */
 
 #endif /* __BACKPORT_MTK_WED_H */

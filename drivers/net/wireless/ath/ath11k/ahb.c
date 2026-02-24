@@ -1303,25 +1303,13 @@ free_resources:
 	ath11k_ahb_free_resources(ab);
 }
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_ath11k_ahb_remove(struct platform_device *pdev) {
-	ath11k_ahb_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver ath11k_ahb_driver = {
 	.driver = {
 		.name = "ath11k",
 		.of_match_table = ath11k_ahb_of_match,
 	},
 	.probe = ath11k_ahb_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove = ath11k_ahb_remove,
-#else
-	.remove = bp_ath11k_ahb_remove,
-#endif
-	
 	.shutdown = ath11k_ahb_shutdown,
 };
 

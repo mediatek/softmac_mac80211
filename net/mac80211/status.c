@@ -1253,7 +1253,11 @@ free:
 
 	ieee80211_report_used_skb(local, skb, false, status->ack_hwtstamp);
 	if (status->free_list)
+#if LINUX_VERSION_IS_GEQ(4,19,0)
 		list_add_tail(&skb->list, status->free_list);
+#else
+		__skb_queue_tail(status->free_list, skb);
+#endif
 	else
 		dev_kfree_skb(skb);
 }

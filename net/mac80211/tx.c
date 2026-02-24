@@ -640,7 +640,9 @@ ieee80211_tx_h_select_key(struct ieee80211_tx_data *tx)
 			if (!ieee80211_is_data_present(hdr->frame_control) &&
 			    !ieee80211_use_mfp(hdr->frame_control, tx->sta,
 					       tx->skb) &&
-			    !ieee80211_is_group_privacy_action(tx->skb))
+			    !ieee80211_is_group_privacy_action(tx->skb) &&
+			    !ieee80211_require_encrypted_assoc(hdr->frame_control,
+							       tx->sta))
 				tx->key = NULL;
 			else
 				skip_hw = (tx->key->conf.flags &
@@ -1062,9 +1064,11 @@ ieee80211_tx_h_encrypt(struct ieee80211_tx_data *tx)
 		return ieee80211_crypto_ccmp_encrypt(
 			tx, IEEE80211_CCMP_256_MIC_LEN);
 	case WLAN_CIPHER_SUITE_AES_CMAC:
-		return ieee80211_crypto_aes_cmac_encrypt(tx);
+		return ieee80211_crypto_aes_cmac_encrypt(
+			tx, IEEE80211_CMAC_128_MIC_LEN);
 	case WLAN_CIPHER_SUITE_BIP_CMAC_256:
-		return ieee80211_crypto_aes_cmac_256_encrypt(tx);
+		return ieee80211_crypto_aes_cmac_encrypt(
+			tx, IEEE80211_CMAC_256_MIC_LEN);
 	case WLAN_CIPHER_SUITE_BIP_GMAC_128:
 	case WLAN_CIPHER_SUITE_BIP_GMAC_256:
 		return ieee80211_crypto_aes_gmac_encrypt(tx);

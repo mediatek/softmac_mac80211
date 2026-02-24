@@ -596,20 +596,8 @@ static void brcmf_common_pd_remove(struct platform_device *pdev)
 		brcmfmac_pdata->power_off();
 }
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_brcmf_common_pd_remove(struct platform_device *pdev) {
-	brcmf_common_pd_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver brcmf_pd = {
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove		= brcmf_common_pd_remove,
-#else
-	.remove = bp_brcmf_common_pd_remove,
-#endif
-	
 	.driver		= {
 		.name	= BRCMFMAC_PDATA_NAME,
 	}

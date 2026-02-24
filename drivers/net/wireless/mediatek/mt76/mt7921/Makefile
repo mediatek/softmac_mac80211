@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: ISC
+# SPDX-License-Identifier: BSD-3-Clause-Clear
 
 obj-$(CPTCFG_MT7921_COMMON) += mt7921-common.o
 obj-$(CPTCFG_MT7921E) += mt7921e.o

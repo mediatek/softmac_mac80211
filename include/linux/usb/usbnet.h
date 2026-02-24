@@ -14,6 +14,7 @@
 #include <linux/skbuff.h>
 #include <linux/types.h>
 #include <linux/usb.h>
+#include <linux/spinlock.h>
 
 /* interface from usbnet core to each USB networking link we handle */
 struct usbnet {
@@ -59,6 +60,7 @@ struct usbnet {
 	struct mutex		interrupt_mutex;
 	struct usb_anchor	deferred;
 	struct work_struct	bh_work;
+	spinlock_t		bql_spinlock;
 
 	struct work_struct	kevent;
 	unsigned long		flags;
@@ -265,6 +267,7 @@ extern int usbnet_stop(struct net_device *net);
 extern netdev_tx_t usbnet_start_xmit(struct sk_buff *skb,
 				     struct net_device *net);
 extern void usbnet_tx_timeout(struct net_device *net, unsigned int txqueue);
+extern void bp_usbnet_tx_timeout(struct net_device *net);
 extern int usbnet_change_mtu(struct net_device *net, int new_mtu);
 
 extern int usbnet_get_endpoints(struct usbnet *, struct usb_interface *);

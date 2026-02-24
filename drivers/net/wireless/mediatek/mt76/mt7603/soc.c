@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: ISC
+// SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -69,21 +69,9 @@ MODULE_DEVICE_TABLE(of, of_wmac_match);
 MODULE_FIRMWARE(MT7628_FIRMWARE_E1);
 MODULE_FIRMWARE(MT7628_FIRMWARE_E2);
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_mt76_wmac_remove(struct platform_device *pdev) {
-	mt76_wmac_remove(pdev);
-
-	return 0;
-}
-#endif
 struct platform_driver mt76_wmac_driver = {
 	.probe		= mt76_wmac_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove		= mt76_wmac_remove,
-#else
-	.remove = bp_mt76_wmac_remove,
-#endif
-	
 	.driver = {
 		.name = "mt76_wmac",
 		.of_match_table = of_wmac_match,

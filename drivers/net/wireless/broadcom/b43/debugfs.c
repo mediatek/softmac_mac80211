@@ -600,6 +600,10 @@ out_unlock:
 
 
 static struct debugfs_short_fops debugfs_ops = {
+#if LINUX_VERSION_IS_LESS(6,12,0)
+	.open = simple_open,
+#endif
+	
 	.read	= b43_debugfs_read,
 	.write	= b43_debugfs_write,
 	.llseek = generic_file_llseek,

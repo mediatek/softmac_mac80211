@@ -130,21 +130,9 @@ static void ath_ahb_remove(struct platform_device *pdev)
 	}
 }
 
-#if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_ath_ahb_remove(struct platform_device *pdev) {
-	ath_ahb_remove(pdev);
-
-	return 0;
-}
-#endif
 static struct platform_driver ath_ahb_driver = {
 	.probe = ath_ahb_probe,
-#if LINUX_VERSION_IS_GEQ(6,11,0)
 	.remove = ath_ahb_remove,
-#else
-	.remove = bp_ath_ahb_remove,
-#endif
-	
 	.driver = {
 		.name = "ath9k",
 		.of_match_table = ath9k_of_match_table,

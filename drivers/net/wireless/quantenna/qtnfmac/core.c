@@ -158,6 +158,15 @@ static void qtnf_netdev_tx_timeout(struct net_device *ndev, unsigned int txqueue
 		queue_work(bus->workqueue, &vif->reset_work);
 	}
 }
+#if LINUX_VERSION_IS_LESS(5,6,0)
+/* Just declare it here to keep sparse happy */
+void bp_qtnf_netdev_tx_timeout(struct net_device *dev);
+void bp_qtnf_netdev_tx_timeout(struct net_device *dev)
+{
+	qtnf_netdev_tx_timeout(dev, 0);
+}
+EXPORT_SYMBOL_GPL(bp_qtnf_netdev_tx_timeout);
+#endif
 
 static int qtnf_netdev_set_mac_address(struct net_device *ndev, void *addr)
 {
@@ -201,7 +210,12 @@ const struct net_device_ops qtnf_netdev_ops = {
 	.ndo_open = qtnf_netdev_open,
 	.ndo_stop = qtnf_netdev_close,
 	.ndo_start_xmit = qtnf_netdev_hard_start_xmit,
+#if LINUX_VERSION_IS_GEQ(5,6,0)
 	.ndo_tx_timeout = qtnf_netdev_tx_timeout,
+#else
+	.ndo_tx_timeout = bp_qtnf_netdev_tx_timeout,
+#endif
+	
 	.ndo_set_mac_address = qtnf_netdev_set_mac_address,
 	.ndo_get_port_parent_id = qtnf_netdev_port_parent_id,
 };
@@ -630,10 +644,16 @@ bool qtnf_netdev_is_qtn(const struct net_device *ndev)
 	return ndev->netdev_ops == &qtnf_netdev_ops;
 }
 
+#if LINUX_VERSION_IS_GEQ(5,9,0)
 static int qtnf_check_br_ports(struct net_device *dev,
 			       struct netdev_nested_priv *priv)
 {
 	struct net_device *ndev = (struct net_device *)priv->data;
+#else
+static int qtnf_check_br_ports(struct net_device *dev, void *data)
+{
+	struct net_device *ndev = data;
+#endif
 
 	if (dev != ndev && netdev_port_same_parent_id(dev, ndev))
 		return -ENOTSUPP;
@@ -646,9 +666,11 @@ static int qtnf_core_netdevice_event(struct notifier_block *nb,
 {
 	struct net_device *ndev = netdev_notifier_info_to_dev(ptr);
 	const struct netdev_notifier_changeupper_info *info;
+#if LINUX_VERSION_IS_GEQ(5,9,0)
 	struct netdev_nested_priv priv = {
 		.data = (void *)ndev,
 	};
+#endif
 	struct net_device *brdev;
 	struct qtnf_vif *vif;
 	struct qtnf_bus *bus;
@@ -688,7 +710,11 @@ static int qtnf_core_netdevice_event(struct notifier_block *nb,
 		} else {
 			ret = netdev_walk_all_lower_dev(brdev,
 							qtnf_check_br_ports,
+#if LINUX_VERSION_IS_GEQ(5,9,0)
 							&priv);
+#else
+							ndev);
+#endif
 		}
 
 		break;
@@ -714,7 +740,8 @@ int qtnf_core_attach(struct qtnf_bus *bus)
 		goto error;
 	}
 
-	bus->hprio_workqueue = alloc_workqueue("QTNF_HPRI", WQ_HIGHPRI, 0);
+	bus->hprio_workqueue = alloc_workqueue("QTNF_HPRI",
+					       WQ_HIGHPRI | WQ_PERCPU, 0);
 	if (!bus->hprio_workqueue) {
 		pr_err("failed to alloc high prio workqueue\n");
 		ret = -ENOMEM;

@@ -508,6 +508,9 @@ config BACKPORTED_ATH11K_TRACING
 config BACKPORTED_ATH11K_SPECTRAL
 	tristate
 	default ATH11K_SPECTRAL
+config BACKPORTED_ATH11K_CFR
+	tristate
+	default ATH11K_CFR
 config BACKPORTED_ATH12K
 	tristate
 	default ATH12K
@@ -526,12 +529,6 @@ config BACKPORTED_ATH12K_TRACING
 config BACKPORTED_ATH12K_COREDUMP
 	tristate
 	default ATH12K_COREDUMP
-config BACKPORTED_WLAN_VENDOR_ATMEL
-	tristate
-	default WLAN_VENDOR_ATMEL
-config BACKPORTED_AT76C50X_USB
-	tristate
-	default AT76C50X_USB
 config BACKPORTED_WLAN_VENDOR_BROADCOM
 	tristate
 	default WLAN_VENDOR_BROADCOM
@@ -745,27 +742,6 @@ config BACKPORTED_IWLWIFI_DEVICE_TRACING
 config BACKPORTED_IWLMEI
 	tristate
 	default IWLMEI
-config BACKPORTED_WLAN_VENDOR_INTERSIL
-	tristate
-	default WLAN_VENDOR_INTERSIL
-config BACKPORTED_P54_COMMON
-	tristate
-	default P54_COMMON
-config BACKPORTED_P54_USB
-	tristate
-	default P54_USB
-config BACKPORTED_P54_PCI
-	tristate
-	default P54_PCI
-config BACKPORTED_P54_SPI
-	tristate
-	default P54_SPI
-config BACKPORTED_P54_SPI_DEFAULT_EEPROM
-	tristate
-	default P54_SPI_DEFAULT_EEPROM
-config BACKPORTED_P54_LEDS
-	tristate
-	default P54_LEDS
 config BACKPORTED_WLAN_VENDOR_MARVELL
 	tristate
 	default WLAN_VENDOR_MARVELL
@@ -844,6 +820,9 @@ config BACKPORTED_MT792x_LIB
 config BACKPORTED_MT792x_USB
 	tristate
 	default MT792x_USB
+config BACKPORTED_MT76_NPU
+	tristate
+	default MT76_NPU
 config BACKPORTED_MT76x0_COMMON
 	tristate
 	default MT76x0_COMMON
@@ -904,6 +883,9 @@ config BACKPORTED_MT7921U
 config BACKPORTED_MT7996E
 	tristate
 	default MT7996E
+config BACKPORTED_MT7996_NPU
+	tristate
+	default MT7996_NPU
 config BACKPORTED_MT7925_COMMON
 	tristate
 	default MT7925_COMMON
@@ -928,12 +910,6 @@ config BACKPORTED_WILC1000_SPI
 config BACKPORTED_WILC1000_HW_OOB_INTR
 	tristate
 	default WILC1000_HW_OOB_INTR
-config BACKPORTED_WLAN_VENDOR_PURELIFI
-	tristate
-	default WLAN_VENDOR_PURELIFI
-config BACKPORTED_PLFXLC
-	tristate
-	default PLFXLC
 config BACKPORTED_WLAN_VENDOR_RALINK
 	tristate
 	default WLAN_VENDOR_RALINK
@@ -1249,6 +1225,9 @@ config BACKPORTED_RTW89_8851BU
 config BACKPORTED_RTW89_8852AE
 	tristate
 	default RTW89_8852AE
+config BACKPORTED_RTW89_8852AU
+	tristate
+	default RTW89_8852AU
 config BACKPORTED_RTW89_8852BE
 	tristate
 	default RTW89_8852BE
@@ -1261,6 +1240,9 @@ config BACKPORTED_RTW89_8852BTE
 config BACKPORTED_RTW89_8852CE
 	tristate
 	default RTW89_8852CE
+config BACKPORTED_RTW89_8852CU
+	tristate
+	default RTW89_8852CU
 config BACKPORTED_RTW89_8922AE
 	tristate
 	default RTW89_8922AE
@@ -1354,12 +1336,6 @@ config BACKPORTED_QTNFMAC
 config BACKPORTED_QTNFMAC_PCIE
 	tristate
 	default QTNFMAC_PCIE
-config BACKPORTED_MAC80211_HWSIM
-	tristate
-	default MAC80211_HWSIM
-config BACKPORTED_VIRT_WIFI
-	tristate
-	default VIRT_WIFI
 config BACKPORTED_USB_NET_DRIVERS
 	tristate
 	default USB_NET_DRIVERS

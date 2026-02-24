@@ -1216,6 +1216,13 @@ static void libertas_spi_remove(struct spi_device *spi)
 		card->pdata->teardown(spi);
 	free_if_spi_card(card);
 }
+#if LINUX_VERSION_IS_LESS(5,18,0)
+static int bp_libertas_spi_remove(struct spi_device *spi){
+	libertas_spi_remove(spi);
+
+	return 0;
+}
+#endif
 
 static int if_spi_suspend(struct device *dev)
 {
@@ -1253,7 +1260,12 @@ static const struct dev_pm_ops if_spi_pm_ops = {
 
 static struct spi_driver libertas_spi_driver = {
 	.probe	= if_spi_probe,
+#if LINUX_VERSION_IS_GEQ(5,18,0)
 	.remove = libertas_spi_remove,
+#else
+	.remove = bp_libertas_spi_remove,
+#endif
+	
 	.driver = {
 		.name	= "libertas_spi",
 		.pm	= &if_spi_pm_ops,

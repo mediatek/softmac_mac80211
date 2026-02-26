@@ -21005,7 +21005,9 @@ static void nl80211_frame_tx_status(struct wireless_dev *wdev,
 			       status->tx_tstamp, NL80211_ATTR_PAD)) ||
 	    (status->ack_tstamp &&
 	     nla_put_u64_64bit(msg, NL80211_ATTR_RX_HW_TIMESTAMP,
-			       status->ack_tstamp, NL80211_ATTR_PAD)))
+			       status->ack_tstamp, NL80211_ATTR_PAD)) ||
+	    (status->link_id >= 0 && status->link_id < IEEE80211_MLD_MAX_NUM_LINKS &&
+	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, status->link_id)))
 		goto nla_put_failure;
 
 	genlmsg_end(msg, hdr);
@@ -21026,7 +21028,8 @@ void cfg80211_control_port_tx_status(struct wireless_dev *wdev, u64 cookie,
 		.cookie = cookie,
 		.buf = buf,
 		.len = len,
-		.ack = ack
+		.ack = ack,
+		.link_id = -1
 	};
 
 	nl80211_frame_tx_status(wdev, &status, gfp,

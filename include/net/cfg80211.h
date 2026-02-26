@@ -8861,6 +8861,7 @@ static inline bool cfg80211_rx_mgmt(struct wireless_dev *wdev, int freq,
  * @buf: Management frame (header + body)
  * @len: length of the frame data
  * @ack: Whether frame was acknowledged
+ * @link_id: On which link the frame was transmitted. -1 for invalid.
  */
 struct cfg80211_tx_status {
 	u64 cookie;
@@ -8869,6 +8870,7 @@ struct cfg80211_tx_status {
 	const u8 *buf;
 	size_t len;
 	bool ack;
+	int link_id;
 };
 
 /**
@@ -8905,7 +8907,8 @@ static inline void cfg80211_mgmt_tx_status(struct wireless_dev *wdev,
 		.cookie = cookie,
 		.buf = buf,
 		.len = len,
-		.ack = ack
+		.ack = ack,
+		.link_id = -1
 	};
 
 	cfg80211_mgmt_tx_status_ext(wdev, &status, gfp);

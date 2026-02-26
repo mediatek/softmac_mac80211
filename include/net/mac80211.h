@@ -1065,6 +1065,7 @@ enum mac80211_tx_control_flags {
  */
 enum mac80211_tx_status_flags {
 	IEEE80211_TX_STATUS_ACK_SIGNAL_VALID = BIT(0),
+	IEEE80211_TX_STATUS_LINK_ID_VALID = BIT(1),
 };
 
 /*
@@ -1291,7 +1292,7 @@ struct ieee80211_tx_info {
 			u8 ampdu_ack_len;
 			u8 ampdu_len;
 			u8 antenna;
-			u8 pad;
+			u8 link_id;
 			u16 tx_time;
 			u8 flags;
 			u8 pad2;

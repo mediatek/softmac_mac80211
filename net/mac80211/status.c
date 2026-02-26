@@ -615,6 +615,7 @@ static void ieee80211_report_ack_skb(struct ieee80211_local *local,
 			.buf = skb->data,
 			.len = skb->len,
 			.ack = acked,
+			.link_id = -1,
 		};
 
 		if (ieee80211_is_timing_measurement(orig_skb) ||
@@ -623,6 +624,9 @@ static void ieee80211_report_ack_skb(struct ieee80211_local *local,
 				ktime_to_ns(skb_hwtstamps(orig_skb)->hwtstamp);
 			status.ack_tstamp = ktime_to_ns(ack_hwtstamp);
 		}
+
+		if (info->status.flags & IEEE80211_TX_STATUS_LINK_ID_VALID)
+			status.link_id = info->status.link_id;
 
 		rcu_read_lock();
 		sdata = ieee80211_sdata_from_skb(local, skb);

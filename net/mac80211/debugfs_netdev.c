@@ -751,6 +751,25 @@ static ssize_t ieee80211_if_parse_active_links(struct ieee80211_sub_if_data *sda
 }
 IEEE80211_IF_FILE_RW(active_links);
 
+static ssize_t ieee80211_if_fmt_eml_resp(const struct ieee80211_sub_if_data *sdata,
+					 char *buf, int buflen)
+{
+	return snprintf(buf, buflen, "%u\n", sdata->vif.cfg.eml_resp);
+}
+
+static ssize_t ieee80211_if_parse_eml_resp(struct ieee80211_sub_if_data *sdata,
+					   const char *buf, int buflen)
+{
+	u8 val;
+
+	if (kstrtou8(buf, 0, &val))
+		return -EINVAL;
+	sdata->vif.cfg.eml_resp = val;
+
+	return buflen;
+}
+IEEE80211_IF_FILE_RW(eml_resp);
+
 IEEE80211_IF_LINK_FILE(addr, conf->addr, MAC);
 
 #ifdef CPTCFG_MAC80211_MESH
@@ -874,6 +893,7 @@ static void add_ap_files(struct ieee80211_sub_if_data *sdata)
 	DEBUGFS_ADD(dtim_count);
 	DEBUGFS_ADD(ttlm);
 	DEBUGFS_ADD(num_buffered_multicast);
+	DEBUGFS_ADD(eml_resp);
 	DEBUGFS_ADD_MODE(tkip_mic_test, 0200);
 	DEBUGFS_ADD_MODE(multicast_to_unicast, 0600);
 }

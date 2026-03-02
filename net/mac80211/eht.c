@@ -113,6 +113,9 @@ ieee80211_send_eml_op_mode_notif(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_mgmt *mgmt;
 	struct sk_buff *skb;
 
+	if (!sdata->vif.cfg.eml_resp)
+		return;
+
 	len += opt_len; /* optional len */
 	skb = dev_alloc_skb(local->tx_headroom + len);
 	if (!skb)

@@ -2000,6 +2000,7 @@ struct ieee80211_vif_cfg {
 	bool s1g;
 	bool idle;
 	u8 ap_addr[ETH_ALEN] __aligned(2);
+	u8 eml_resp;
 };
 
 /**

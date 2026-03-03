@@ -370,7 +370,8 @@ struct ieee80211_vif_chanctx_switch {
  * @BSS_CHANGED_UNSOL_BCAST_PROBE_RESP: Unsolicited broadcast probe response
  *	status changed.
  * @BSS_CHANGED_MLD_VALID_LINKS: MLD valid links status changed.
- * @BSS_CHANGED_MLD_TTLM: negotiated TID to link mapping was changed
+ * @BSS_CHANGED_MLD_NEG_TTLM: negotiated TID to link mapping was changed
+ * @BSS_CHANGED_MLD_ADV_TTLM: advertised TID to link mapping was changed
  * @BSS_CHANGED_TPE: transmit power envelope changed
  * @BSS_CHANGED_NAN_LOCAL_SCHED: NAN local schedule changed (NAN mode only)
  * @BSS_CHANGED_NPCA: NPCA parameters changed
@@ -413,6 +414,8 @@ enum ieee80211_bss_change {
 	BSS_CHANGED_TPE			= BIT_ULL(35),
 	BSS_CHANGED_NAN_LOCAL_SCHED	= BIT_ULL(36),
 	BSS_CHANGED_NPCA		= BIT_ULL(37),
+	BSS_CHANGED_MLD_NEG_TTLM	= BIT_ULL(62),
+	BSS_CHANGED_MLD_ADV_TTLM	= BIT_ULL(63),
 
 	/* when adding here, make sure to change ieee80211_reconfig */
 };
@@ -2147,6 +2150,22 @@ struct ieee80211_vif_cfg {
 #define IEEE80211_TTLM_NUM_TIDS 8
 
 /**
+ * struct ieee8021_adv_ttlm - advertised TID to link map info
+ *
+ * @switch_time: time in TUs at which the new mapping is established, or 0 if
+ *      there is no planned advertised TID-to-link mapping.
+ * @duration: duration of the planned TID-to-link mapping in TUs.
+ * @map: bitmap of usable links for all TIDs.
+ * @active: whether the advertised mapping is active or not.
+ */
+struct ieee80211_adv_ttlm {
+	u16 switch_time;
+	u32 duration;
+	u16 map;
+	bool active;
+};
+
+/**
  * struct ieee80211_neg_ttlm - negotiated TID to link map info
  *
  * @downlink: bitmap of active links per TID for downlink, or 0 if mapping for
@@ -2196,6 +2215,8 @@ enum ieee80211_neg_ttlm_res {
  *	suspended due to negotiated TTLM, and could be activated in the
  *	future by tearing down the TTLM negotiation.
  *	0 for non-MLO.
+ * @adv_ttlm: advertised TID to link mapping info.
+ *	see &struct ieee80211_adv_ttlm.
  * @neg_ttlm: negotiated TID to link mapping info.
  *	see &struct ieee80211_neg_ttlm.
  * @addr: address of this interface
@@ -2238,6 +2259,7 @@ struct ieee80211_vif {
 	struct ieee80211_bss_conf bss_conf;
 	struct ieee80211_bss_conf __rcu *link_conf[IEEE80211_MLD_MAX_NUM_LINKS];
 	u16 valid_links, active_links, dormant_links, suspended_links;
+	struct ieee80211_adv_ttlm adv_ttlm;
 	struct ieee80211_neg_ttlm neg_ttlm;
 	u8 addr[ETH_ALEN] __aligned(2);
 	bool addr_valid;

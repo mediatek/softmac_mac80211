@@ -12504,6 +12504,8 @@ skip_beacons:
 	beacon_check.reg_power =
 		cfg80211_get_6ghz_power_type(params.beacon_after.tail,
 					     params.beacon_after.tail_len, 0);
+	/* handle DFS CAC after CSA is sent */
+	beacon_check.dfs_relax = true;
 	if (!cfg80211_reg_check_beaconing(&rdev->wiphy, &params.chandef,
 					  &beacon_check)) {
 		err = -EINVAL;

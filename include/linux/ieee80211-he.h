@@ -39,10 +39,19 @@
 #define IEEE80211_TWT_REQTYPE_PROTECTION		BIT(15)
 
 #define IEEE80211_TWT_REQTYPE_LAST_BCAST_PARAM		BIT(5)
-#define IEEE80211_TWT_REQTYPE_RECM			GENMASK(9, 7)
+#define IEEE80211_TWT_REQTYPE_BTWT_RECM			GENMASK(9, 7)
 
+#define IEEE80211_BTWT_RTWT_INFO_PRESENT		BIT(0)
 #define IEEE80211_BTWT_INFO_ID				GENMASK(7, 3)
 #define IEEE80211_BTWT_INFO_PERSISTENCE			GENMASK(15, 8)
+
+#define IEEE80211_RTWT_INFO_DL_TID_BMP_VALID		BIT(0)
+#define IEEE80211_RTWT_INFO_UL_TID_BMP_VALID		BIT(1)
+
+enum ieee80211_twt_request {
+	TWT_RESPONDING_OR_SCHEDULING_STA,
+	TWT_REQUESTING_OR_SCHEDULED_STA,
+};
 
 enum ieee80211_twt_setup_cmd {
 	TWT_SETUP_CMD_REQUEST,
@@ -54,6 +63,12 @@ enum ieee80211_twt_setup_cmd {
 	TWT_SETUP_CMD_DICTATE,
 	TWT_SETUP_CMD_REJECT,
 };
+
+struct ieee80211_rtwt_info {
+	u8 info_ctrl;
+	u8 dl_tid_bmp;
+	u8 ul_tid_bmp;
+} __packed;
 
 struct ieee80211_twt_params {
 	__le16 req_type;
@@ -69,6 +84,7 @@ struct ieee80211_twt_params {
 			u8 min_twt_dur;
 			__le16 mantissa;
 			__le16 btwt_info;
+			struct ieee80211_rtwt_info rtwt;
 		} __packed bcast;
 	};
 } __packed;

@@ -318,6 +318,8 @@ struct ieee80211_rate {
  * @recommendation: recommendations on the types of frames to be transmitted
  * @persist: number of TBTTs during which the Broadcast TWT SPs corresponding
  *	to this broadcast TWT Parameter set are present
+ * @dl_tid_bmp: latency sensitive traffic streams in the DL direction.
+ * @ul_tid_bmp: latency sensitive traffic streams in the UL direction.
  */
 struct cfg80211_broadcast_twt_settings {
 	u8 id;
@@ -329,6 +331,8 @@ struct cfg80211_broadcast_twt_settings {
 	bool flow_type;
 	u8 recommendation;
 	u8 persist;
+	u8 dl_tid_bmp;
+	u8 ul_tid_bmp;
 };
 
 /**
@@ -10340,6 +10344,20 @@ void cfg80211_attlm_notify(struct wireless_dev *wdev, u16 switch_time_tsf_tu,
  */
 void cfg80211_tsf_offset_notify(struct wireless_dev *wdev, unsigned int link_id,
 				s64 *tsf_offset, size_t len, gfp_t gfp);
+
+/**
+ * cfg80211_btwt_demand_sched_notify - notify about broadcast TWT settings
+ * @dev: network device
+ * @settings: broadcast TWT parameters
+ * @gfp: allocation flags
+ *
+ * This sends a kernel-to-userspace NL80211 notification containing
+ * NL80211_ATTR_BROADCAST_TWT_PARAMS to inform user space about a
+ * broadcast TWT setup discovered/derived in kernel
+ */
+void cfg80211_btwt_demand_sched_notify(struct net_device *dev,
+				       struct cfg80211_broadcast_twt_settings *settings,
+				       gfp_t gfp);
 
 /**
  * cfg80211_obss_color_collision_notify - notify about bss color collision

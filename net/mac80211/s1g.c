@@ -94,6 +94,71 @@ ieee80211_s1g_send_twt_teardown(struct ieee80211_sub_if_data *sdata,
 	ieee80211_tx_skb(sdata, skb);
 }
 
+static int
+ieee80211_s1g_handle_twt_demand_setup(struct ieee80211_sub_if_data *sdata,
+				      struct sk_buff *skb)
+{
+	const size_t fixed_len = offsetof(struct ieee80211_twt_params, bcast.rtwt);
+	struct ieee80211_mgmt *mgmt = (void *)skb->data;
+	struct ieee80211_twt_setup *twt = (void *)mgmt->u.action.u.s1g.variable;
+	struct ieee80211_twt_params *twt_agrt = (void *)twt->params;
+	struct cfg80211_broadcast_twt_settings settings;
+	size_t remaining_len;
+	int ret;
+
+	remaining_len = skb->len - ((u8 *)twt_agrt - skb->data);
+	if (remaining_len < fixed_len)
+		return -EINVAL;
+
+	memset(&settings, 0, sizeof(settings));
+
+	settings.min_wake_dur = twt_agrt->bcast.min_twt_dur;
+	settings.wake_intv_mantissa = le16_to_cpu(twt_agrt->bcast.mantissa);
+	settings.wake_intv_exp = le16_get_bits(twt_agrt->req_type,
+					       IEEE80211_TWT_REQTYPE_WAKE_INT_EXP);
+	settings.trigger = le16_get_bits(twt_agrt->req_type,
+					 IEEE80211_TWT_REQTYPE_TRIGGER);
+	settings.flow_type = le16_get_bits(twt_agrt->req_type,
+					   IEEE80211_TWT_REQTYPE_FLOWTYPE);
+	settings.recommendation = le16_get_bits(twt_agrt->req_type,
+						IEEE80211_TWT_REQTYPE_BTWT_RECM);
+	settings.setup_cmd = le16_get_bits(twt_agrt->req_type,
+					   IEEE80211_TWT_REQTYPE_SETUP_CMD);
+
+	if (le16_get_bits(twt_agrt->bcast.btwt_info,
+			  IEEE80211_BTWT_RTWT_INFO_PRESENT)) {
+		if (remaining_len < fixed_len + sizeof(struct ieee80211_rtwt_info))
+			return -EINVAL;
+
+		if (FIELD_GET(IEEE80211_RTWT_INFO_DL_TID_BMP_VALID,
+			      twt_agrt->bcast.rtwt.info_ctrl))
+			settings.dl_tid_bmp = twt_agrt->bcast.rtwt.dl_tid_bmp;
+
+		if (FIELD_GET(IEEE80211_RTWT_INFO_UL_TID_BMP_VALID,
+			      twt_agrt->bcast.rtwt.info_ctrl))
+			settings.ul_tid_bmp = twt_agrt->bcast.rtwt.ul_tid_bmp;
+	}
+
+	if ((sdata->deflink.btwt_active_bitmap | BIT(0)) == ~0U)
+		return -ENOSPC;
+
+	settings.id = ffz(sdata->deflink.btwt_active_bitmap | BIT(0));
+
+	ret = drv_add_btwt(sdata->local, sdata, &settings);
+	if (ret)
+		return ret;
+
+	sdata->deflink.btwt_active_bitmap |= BIT(settings.id);
+	le16p_replace_bits(&twt_agrt->bcast.btwt_info, settings.id,
+			   IEEE80211_BTWT_INFO_ID);
+	le16p_replace_bits(&twt_agrt->bcast.btwt_info, settings.persist,
+			   IEEE80211_BTWT_INFO_PERSISTENCE);
+
+	cfg80211_btwt_demand_sched_notify(sdata->dev, &settings, GFP_KERNEL);
+
+	return 0;
+}
+
 static void
 ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 			   struct sta_info *sta, struct sk_buff *skb)
@@ -101,18 +166,29 @@ ieee80211_s1g_rx_twt_setup(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_mgmt *mgmt = (void *)skb->data;
 	struct ieee80211_twt_setup *twt = (void *)mgmt->u.action.u.s1g.variable;
 	struct ieee80211_twt_params *twt_agrt = (void *)twt->params;
+	int ret;
 
-	twt_agrt->req_type &= ~cpu_to_le16(IEEE80211_TWT_REQTYPE_REQUEST);
+	if (twt->control & IEEE80211_TWT_CONTROL_NEG_TYPE_BROADCAST &&
+	    (le16_get_bits(twt_agrt->req_type, IEEE80211_TWT_REQTYPE_SETUP_CMD) ==
+	     TWT_SETUP_CMD_DEMAND)) {
+		ret = ieee80211_s1g_handle_twt_demand_setup(sdata, skb);
+		if (ret) {
+			le16p_replace_bits(&twt_agrt->req_type, TWT_SETUP_CMD_REJECT,
+					   IEEE80211_TWT_REQTYPE_SETUP_CMD);
+			pr_info("%s: Handle TWT demand failed: %d\n", __func__, ret);
+			goto send_rsp;
+		}
+	}
 
+	ret = drv_add_twt_setup(sdata->local, sdata, &sta->sta, twt);
+	if (ret)
+		pr_info("%s: Handle add twt setup failed: %d\n", __func__, ret);
+
+send_rsp:
+	le16p_replace_bits(&twt_agrt->req_type, TWT_RESPONDING_OR_SCHEDULING_STA,
+			   IEEE80211_TWT_REQTYPE_REQUEST);
 	/* TWT Information not supported yet */
 	twt->control |= IEEE80211_TWT_CONTROL_RX_DISABLED;
-
-	if (drv_add_twt_setup(sdata->local, sdata, &sta->sta, twt)) {
-		twt_agrt->req_type &= ~cpu_to_le16(IEEE80211_TWT_REQTYPE_SETUP_CMD);
-		twt_agrt->req_type |=
-			le16_encode_bits(TWT_SETUP_CMD_REJECT,
-					 IEEE80211_TWT_REQTYPE_SETUP_CMD);
-	}
 
 	ieee80211_s1g_send_twt_setup(sdata, mgmt->sa, sdata->vif.addr, twt);
 }

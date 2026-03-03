@@ -586,6 +586,8 @@ nl80211_broadcast_twt_policy[NL80211_BROADCAST_TWT_ATTR_MAX + 1] = {
 	[NL80211_BROADCAST_TWT_ATTR_FLOW_TYPE] = { .type = NLA_FLAG },
 	[NL80211_BROADCAST_TWT_ATTR_RECOMMENDATION] = NLA_POLICY_RANGE(NLA_U8, 0, 7),
 	[NL80211_BROADCAST_TWT_ATTR_PERSISTENCE] = { .type = NLA_U8 },
+	[NL80211_BROADCAST_TWT_ATTR_DL_TID_BMP] = { .type = NLA_U8 },
+	[NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP] = { .type = NLA_U8 },
 };
 
 static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
@@ -18239,6 +18241,12 @@ nl80211_add_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
 	settings.persist =
 		nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_PERSISTENCE]);
 
+	if (tb[NL80211_BROADCAST_TWT_ATTR_DL_TID_BMP])
+		settings.dl_tid_bmp = nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_DL_TID_BMP]);
+
+	if (tb[NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP])
+		settings.ul_tid_bmp = nla_get_u8(tb[NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP]);
+
 	return rdev_add_btwt(rdev, dev, &settings);
 }
 
@@ -21625,6 +21633,87 @@ nla_put_failure:
 	nlmsg_free(msg);
 }
 EXPORT_SYMBOL(cfg80211_tsf_offset_notify);
+
+void cfg80211_btwt_demand_sched_notify(struct net_device *dev,
+				       struct cfg80211_broadcast_twt_settings *settings,
+				       gfp_t gfp)
+{
+	struct wireless_dev *wdev = dev->ieee80211_ptr;
+	struct sk_buff *msg;
+	struct nlattr *attr;
+	void *hdr;
+
+	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, gfp);
+	if (!msg)
+		return;
+
+	hdr = nl80211hdr_put(msg, 0, 0, 0, NL80211_CMD_ADD_BROADCAST_TWT);
+	if (!hdr) {
+		nlmsg_free(msg);
+		return;
+	}
+
+	if (nla_put_u32(msg, NL80211_ATTR_IFINDEX, dev->ifindex))
+		goto nla_put_failure;
+
+	attr = nla_nest_start_noflag(msg, NL80211_ATTR_BROADCAST_TWT_PARAMS);
+	if (!attr)
+		goto nla_put_failure;
+
+	if (nla_put_u8(msg, NL80211_BROADCAST_TWT_ATTR_ID, settings->id))
+		goto nla_put_failure;
+
+	if (nla_put_u8(msg, NL80211_BROADCAST_TWT_ATTR_MIN_WAKE_DUR,
+		       settings->min_wake_dur))
+		goto nla_put_failure;
+
+	if (nla_put_u16(msg, NL80211_BROADCAST_TWT_ATTR_MANTISSA,
+			settings->wake_intv_mantissa))
+		goto nla_put_failure;
+
+	if (nla_put_u8(msg, NL80211_BROADCAST_TWT_ATTR_EXPONENT,
+		       settings->wake_intv_exp))
+		goto nla_put_failure;
+
+	if (settings->trigger &&
+	    nla_put_flag(msg, NL80211_BROADCAST_TWT_ATTR_TRIGGER))
+		goto nla_put_failure;
+
+	if (settings->flow_type &&
+	    nla_put_flag(msg, NL80211_BROADCAST_TWT_ATTR_FLOW_TYPE))
+		goto nla_put_failure;
+
+	if (nla_put_u8(msg, NL80211_BROADCAST_TWT_ATTR_RECOMMENDATION,
+		       settings->recommendation))
+		goto nla_put_failure;
+
+	if (nla_put_u8(msg, NL80211_BROADCAST_TWT_ATTR_PERSISTENCE,
+		       settings->persist))
+		goto nla_put_failure;
+
+	if (settings->dl_tid_bmp &&
+	    nla_put_u8(msg, NL80211_BROADCAST_TWT_ATTR_DL_TID_BMP,
+		       settings->dl_tid_bmp))
+		goto nla_put_failure;
+
+	if (settings->ul_tid_bmp &&
+	    nla_put_u8(msg, NL80211_BROADCAST_TWT_ATTR_UL_TID_BMP,
+		       settings->ul_tid_bmp))
+		goto nla_put_failure;
+
+	nla_nest_end(msg, attr);
+
+	genlmsg_end(msg, hdr);
+
+	genlmsg_multicast_netns(&nl80211_fam, wiphy_net(wdev->wiphy), msg, 0,
+				NL80211_MCGRP_MLME, gfp);
+
+	return;
+
+nla_put_failure:
+	nlmsg_free(msg);
+}
+EXPORT_SYMBOL(cfg80211_btwt_demand_sched_notify);
 
 void
 nl80211_radar_notify(struct cfg80211_registered_device *rdev,

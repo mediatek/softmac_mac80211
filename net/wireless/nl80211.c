@@ -3878,7 +3878,7 @@ static int nl80211_set_wiphy_radio(struct genl_info *info,
 {
 	const struct wiphy_radio *radio;
 	u32 rts_threshold = 0, old_rts, changed = 0;
-	int result;
+	int result = 0;
 
 	if (!rdev->ops->set_wiphy_params)
 		return -EOPNOTSUPP;
@@ -3894,13 +3894,16 @@ static int nl80211_set_wiphy_radio(struct genl_info *info,
 		changed |= WIPHY_PARAM_RTS_THRESHOLD;
 	}
 
-	old_rts = rdev->wiphy.radio_cfg[radio_idx].rts_threshold;
+	if (changed) {
+		old_rts = rdev->wiphy.radio_cfg[radio_idx].rts_threshold;
+		if (changed & WIPHY_PARAM_RTS_THRESHOLD)
+			rdev->wiphy.radio_cfg[radio_idx].rts_threshold = rts_threshold;
 
-	rdev->wiphy.radio_cfg[radio_idx].rts_threshold = rts_threshold;
+		result = rdev_set_wiphy_params(rdev, radio_idx, changed);
 
-	result = rdev_set_wiphy_params(rdev, radio_idx, changed);
-	if (result)
-		rdev->wiphy.radio_cfg[radio_idx].rts_threshold = old_rts;
+		if (result)
+			rdev->wiphy.radio_cfg[radio_idx].rts_threshold = old_rts;
+	}
 
 	if (info->attrs[NL80211_ATTR_WIPHY_ANTENNA_TX] &&
 	    info->attrs[NL80211_ATTR_WIPHY_ANTENNA_RX]) {

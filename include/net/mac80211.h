@@ -423,12 +423,14 @@ enum ieee80211_bss_change {
  * @BA_FRAME_TIMEOUT: Frames were released from the reordering buffer because
  *	they timed out. This won't be called for each frame released, but only
  *	once each time the timeout triggers.
+ * @BCN_RX_EVENT: a beacon was received
  */
 enum ieee80211_event_type {
 	RSSI_EVENT,
 	MLME_EVENT,
 	BAR_RX_EVENT,
 	BA_FRAME_TIMEOUT,
+	BCN_RX_EVENT,
 };
 
 /**
@@ -500,11 +502,20 @@ struct ieee80211_ba_event {
 };
 
 /**
+ * struct ieee80211_bcn_event - data attached to %BCN_RX_EVENT
+ * @link_id: the link that receives beacon
+ */
+struct ieee80211_bcn_event {
+	unsigned int link_id;
+};
+
+/**
  * struct ieee80211_event - event to be sent to the driver
  * @type: The event itself. See &enum ieee80211_event_type.
  * @u.rssi: relevant if &type is %RSSI_EVENT
  * @u.mlme: relevant if &type is %AUTH_EVENT
  * @u.ba: relevant if &type is %BAR_RX_EVENT or %BA_FRAME_TIMEOUT
+ * @u.bcn: relevant if &type is %BCN_RX_EVENT
  * @u:union holding the fields above
  */
 struct ieee80211_event {
@@ -513,6 +524,7 @@ struct ieee80211_event {
 		struct ieee80211_rssi_event rssi;
 		struct ieee80211_mlme_event mlme;
 		struct ieee80211_ba_event ba;
+		struct ieee80211_bcn_event bcn;
 	} u;
 };
 

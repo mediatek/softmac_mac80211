@@ -2885,6 +2885,10 @@ static void ieee80211_csa_switch_work(struct wiphy *wiphy,
 	struct ieee80211_sub_if_data *sdata = link->sdata;
 	struct ieee80211_local *local = sdata->local;
 	struct ieee80211_if_managed *ifmgd = &sdata->u.mgd;
+	struct ieee80211_event event = {
+		.type = BCN_RX_EVENT,
+		.u.bcn.link_id = link->link_id,
+	};
 	int ret;
 
 	if (!ieee80211_sdata_running(sdata))
@@ -3007,6 +3011,7 @@ static void ieee80211_csa_switch_work(struct wiphy *wiphy,
 			return;
 	}
 
+	drv_event_callback(local, sdata, &event);
 	/*
 	 * Reset the beacon monitor and connection monitor timers when CSA
 	 * is active for all links in MLO when channel switch occurs in all
@@ -8257,6 +8262,9 @@ static void ieee80211_rx_mgmt_beacon(struct ieee80211_link_data *link,
 		.from_ap = true,
 		.type = le16_to_cpu(mgmt->frame_control) & IEEE80211_FCTL_TYPE,
 	};
+	struct ieee80211_event event = {
+		.type = BCN_RX_EVENT,
+	};
 
 	lockdep_assert_wiphy(local->hw.wiphy);
 
@@ -8348,6 +8356,8 @@ static void ieee80211_rx_mgmt_beacon(struct ieee80211_link_data *link,
 		ieee80211_reset_ap_probe(sdata);
 	}
 
+	event.u.bcn.link_id = link->link_id;
+	drv_event_callback(local, sdata, &event);
 	/*
 	 * Push the beacon loss detection into the future since
 	 * we are processing a beacon from the AP just now.

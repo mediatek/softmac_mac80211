@@ -4617,7 +4617,7 @@ __ieee80211_channel_switch(struct wiphy *wiphy, struct net_device *dev,
 		for_each_sdata_link(local, link) {
 			if (rcu_access_pointer(link->conf->chanctx_conf) == &chanctx->conf)
 				n_assigned++;
-			if (link->reserved_chanctx == chanctx)
+			if (link->reserved_chanctx)
 				n_reserved++;
 		}
 

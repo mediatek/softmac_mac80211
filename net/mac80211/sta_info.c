@@ -3530,6 +3530,9 @@ void ieee80211_sta_remove_link(struct sta_info *sta, unsigned int link_id)
 
 	sta->sta.valid_links &= ~BIT(link_id);
 
+	if (sdata->vif.type == NL80211_IFTYPE_AP_VLAN && sdata->bss)
+		sdata = container_of(sdata->bss, struct ieee80211_sub_if_data, u.ap);
+
 	if (!WARN_ON(!test_sta_flag(sta, WLAN_STA_INSERTED)))
 		drv_change_sta_links(sdata->local, sdata, &sta->sta,
 				     old_links, sta->sta.valid_links);

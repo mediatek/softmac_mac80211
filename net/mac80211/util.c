@@ -1121,7 +1121,8 @@ void ieee80211_set_wmm_default(struct ieee80211_link_data *link,
 		qparam.uapsd = false;
 
 		link->tx_conf[ac] = qparam;
-		drv_conf_tx(local, link, ac, &qparam);
+		if (sdata->vif.type != NL80211_IFTYPE_AP_VLAN)
+			drv_conf_tx(local, link, ac, &qparam);
 	}
 
 	if (sdata->vif.type != NL80211_IFTYPE_MONITOR &&

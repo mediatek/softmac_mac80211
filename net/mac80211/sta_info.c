@@ -3908,3 +3908,47 @@ bool ieee80211_link_sta_update_rc_bw(struct ieee80211_link_data *link,
 
 	return true;
 }
+
+enum ieee80211_sta_rx_bandwidth
+ieee80211_link_sta_cap_bw(struct ieee80211_link_sta *pub)
+{
+	struct sta_info *sta = container_of(pub->sta, struct sta_info, sta);
+	struct ieee80211_sub_if_data *sdata = sta->sdata;
+	struct ieee80211_bss_conf *link_conf;
+	struct link_sta_info *link_sta;
+	enum ieee80211_sta_rx_bandwidth bw;
+
+	rcu_read_lock();
+	link_conf = rcu_dereference(sdata->vif.link_conf[pub->link_id]);
+	if (unlikely(!link_conf)) {
+		rcu_read_unlock();
+		return IEEE80211_STA_RX_BW_20;
+	}
+
+	link_sta = rcu_dereference(sta->link[pub->link_id]);
+	if (unlikely(!link_sta)) {
+		rcu_read_unlock();
+		return IEEE80211_STA_RX_BW_20;
+	}
+
+	bw = ieee80211_sta_bw_capability(link_sta, link_conf->chanreq.oper.chan->band);
+	rcu_read_unlock();
+
+	return bw;
+}
+EXPORT_SYMBOL(ieee80211_link_sta_cap_bw);
+
+u8 ieee80211_link_sta_cap_nss(struct ieee80211_link_sta *pub)
+{
+	struct sta_info *sta = container_of(pub->sta, struct sta_info, sta);
+	struct link_sta_info *link_sta;
+	u8 nss;
+
+	rcu_read_lock();
+	link_sta = rcu_dereference(sta->link[pub->link_id]);
+	nss = link_sta->capa_nss;
+	rcu_read_unlock();
+
+	return nss;
+}
+EXPORT_SYMBOL(ieee80211_link_sta_cap_nss);

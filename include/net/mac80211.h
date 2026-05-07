@@ -23,6 +23,7 @@
 #include <net/codel.h>
 #include <net/ieee80211_radiotap.h>
 #include <linux/unaligned.h>
+#include <linux/soc/mediatek/muldf_print_mt76.h>
 
 /**
  * DOC: Introduction

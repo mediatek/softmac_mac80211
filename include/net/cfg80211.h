@@ -24,6 +24,7 @@
 #include <linux/net.h>
 #include <linux/rfkill.h>
 #include <net/regulatory.h>
+#include <linux/soc/mediatek/muldf_print_mt76.h>
 
 /**
  * DOC: Introduction

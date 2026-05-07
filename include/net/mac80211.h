@@ -2161,6 +2161,8 @@ struct ieee80211_vif_cfg {
 	u8 ap_addr[ETH_ALEN] __aligned(2);
 	/* Protected by the wiphy mutex */
 	struct ieee80211_nan_sched_cfg nan_sched;
+
+	u8 eml_resp;
 };
 
 /**

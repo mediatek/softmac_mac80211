@@ -62,7 +62,7 @@ bool __ieee80211_recalc_txpower(struct ieee80211_link_data *link)
 		int radio_idx = chanctx_conf->radio_idx;
 		const struct wiphy_radio_cfg *rcfg = &wiphy->radio_cfg[radio_idx];
 
-		if (rcfg->tx_power_level)
+		if (rcfg->tx_power_level >= 0)
 			power = min(power, rcfg->tx_power_level);
 	}
 	rcu_read_unlock();

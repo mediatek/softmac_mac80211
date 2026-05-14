@@ -4500,13 +4500,14 @@ static int nl80211_set_wiphy(struct sk_buff *skb, struct genl_info *info)
 
 		if (rdev->wiphy.n_radio) {
 			rcfg = &rdev->wiphy.radio_cfg[radio_idx];
-			rcfg->tx_power_level = MBM_TO_DBM(mbm);
+			rcfg->tx_power_level = (type == NL80211_TX_POWER_AUTOMATIC) ?
+				-1 : MBM_TO_DBM(mbm);
 		}
 
 		result = rdev_set_tx_power(rdev, txp_wdev, radio_idx, type,
 					   mbm);
 		if (result) {
-			rcfg->tx_power_level = 0;
+			rcfg->tx_power_level = -1;
 			return result;
 		}
 	}

@@ -162,19 +162,22 @@ static int dfs_print_chan(struct ieee80211_channel *chan, int remain_time, int w
 	return offset;
 }
 
-static int dfs_status_read_wdev(struct wiphy *wiphy, struct wireless_dev *wdev, char *buf,
-				unsigned int buf_size, unsigned int offset)
+static ssize_t dfs_status_read(struct file *file, char __user *user_buf,
+			       size_t count, loff_t *ppos)
 {
+	unsigned int offset = 0, buf_size = PAGE_SIZE;
+	struct wiphy *wiphy = file->private_data;
 	struct cfg80211_registered_device *rdev = wiphy_to_rdev(wiphy);
-	struct cfg80211_chan_def *chandef;
-	struct cfg80211_chan_def *background_chandef = &rdev->background_radar_chandef;
-	enum nl80211_band band;
+	struct cfg80211_chan_def *background_chandef;
 	struct ieee80211_supported_band *sband = NULL;
-	struct ieee80211_channel *chan;
-	unsigned long jiffies_passed;
-	unsigned int link_id;
-	int i, remain_time = 0, wait_time_ms = 0;
-	bool is_background;
+	enum nl80211_band band;
+	ssize_t r;
+	char *buf;
+	int i;
+
+	buf = kzalloc(buf_size, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
 
 	for (band = 0; band < NUM_NL80211_BANDS; band++)
 		if (wiphy->bands[band] &&
@@ -183,103 +186,78 @@ static int dfs_status_read_wdev(struct wiphy *wiphy, struct wireless_dev *wdev, 
 
 	if (!sband) {
 		offset += scnprintf(buf + offset, buf_size - offset, "No 5G band\n");
-		return offset;
+		goto out;
 	}
 
-	for_each_valid_link(wdev, link_id) {
-		chandef = wdev_chandef(wdev, link_id);
-		if (!chandef || !chandef->chan ||
-		    chandef->chan->band != NL80211_BAND_5GHZ)
+	background_chandef = &rdev->background_radar_chandef;
+	for (i = 0; i < sband->n_channels; i++) {
+		int remain_time = 0, wait_time_ms = 0;
+		struct ieee80211_channel *chan;
+		unsigned long jiffies_passed;
+		bool is_background = false;
+
+		chan = &sband->channels[i];
+
+		if (!(chan->flags & IEEE80211_CHAN_RADAR) ||
+		    (chan->flags & IEEE80211_CHAN_DISABLED))
 			continue;
 
-		offset += scnprintf(buf + offset, buf_size - offset,
-				    "Link %d DFS channel:\n", link_id);
-		for (i = 0; i < sband->n_channels; i++) {
-			is_background = false;
-			chan = &sband->channels[i];
+		if (chan->dfs_state == NL80211_DFS_UNAVAILABLE) {
+			jiffies_passed = jiffies - chan->dfs_state_entered;
+			wait_time_ms = IEEE80211_DFS_MIN_NOP_TIME_MS;
+			remain_time = (wait_time_ms - jiffies_to_msecs(jiffies_passed));
+		} else if (chan->dfs_state == NL80211_DFS_USABLE) {
+			struct wireless_dev *wdev;
 
-			if (!(chan->flags & IEEE80211_CHAN_RADAR))
-				continue;
+			list_for_each_entry(wdev, &wiphy->wdev_list, list) {
+				struct cfg80211_chan_def *chandef;
+				unsigned int link_id;
+				bool has_5g = false;
 
-			if (chan->dfs_state == NL80211_DFS_UNAVAILABLE) {
-				jiffies_passed = jiffies - chan->dfs_state_entered;
-				wait_time_ms = IEEE80211_DFS_MIN_NOP_TIME_MS;
-				remain_time = (wait_time_ms - jiffies_to_msecs(jiffies_passed));
-				if (remain_time > wait_time_ms)
-					remain_time = 0;
-			} else if (chan->dfs_state == NL80211_DFS_USABLE) {
+				/* TODO: handle multiple 5g radio cases */
+				for_each_valid_link(wdev, link_id) {
+					chandef = wdev_chandef(wdev, link_id);
+					if (chandef && chandef->chan &&
+					    chandef->chan->band == NL80211_BAND_5GHZ) {
+						has_5g = true;
+						break;
+					}
+				}
+
+				if (!has_5g)
+					continue;
+
 				if (wdev->links[link_id].cac_started &&
 				    cfg80211_is_sub_chan(chandef, chan, false)) {
-					jiffies_passed = jiffies -
-							 wdev->links[link_id].cac_start_time;
+					jiffies_passed =
+						jiffies - wdev->links[link_id].cac_start_time;
 					wait_time_ms = wdev->links[link_id].cac_time_ms;
-					remain_time = (wait_time_ms -
-						       jiffies_to_msecs(jiffies_passed));
+					remain_time =
+						(wait_time_ms - jiffies_to_msecs(jiffies_passed));
+
+					break;
 				}
-
-				if (rdev->background_radar_wdev == wdev &&
-				    rdev->background_cac_started &&
-				    cfg80211_is_sub_chan(background_chandef, chan, false)) {
-					jiffies_passed = jiffies - rdev->background_cac_start_time;
-					wait_time_ms = rdev->background_cac_time_ms;
-					remain_time = (wait_time_ms -
-						       jiffies_to_msecs(jiffies_passed));
-					is_background = true;
-				}
-
-				if (remain_time > wait_time_ms)
-					remain_time = 0;
-
-			} else {
-				if (rdev->background_radar_wdev == wdev &&
-				    cfg80211_is_sub_chan(background_chandef, chan, false))
-					is_background = true;
 			}
-
-			offset = dfs_print_chan(chan, remain_time / 1000, wait_time_ms / 1000,
-						buf, buf_size, offset, is_background);
-			remain_time = 0;
 		}
+
+		if (cfg80211_is_sub_chan(background_chandef, chan, false)) {
+			is_background = true;
+			if (rdev->background_cac_started &&
+			    chan->dfs_state == NL80211_DFS_USABLE) {
+				jiffies_passed = jiffies - rdev->background_cac_start_time;
+				wait_time_ms = rdev->background_cac_time_ms;
+				remain_time = (wait_time_ms - jiffies_to_msecs(jiffies_passed));
+			}
+		}
+
+		if (remain_time < 0)
+			remain_time = 0;
+
+		offset = dfs_print_chan(chan, remain_time / 1000, wait_time_ms / 1000,
+					buf, buf_size, offset, is_background);
 	}
 
-	return offset;
-}
-
-static ssize_t dfs_status_read(struct file *file, char __user *user_buf,
-			       size_t count, loff_t *ppos)
-{
-	struct wiphy *wiphy = file->private_data;
-	struct wireless_dev *wdev;
-	char *buf;
-	unsigned int offset = 0, buf_size = PAGE_SIZE, r;
-	const char * const iftype_str[] = {
-		[NL80211_IFTYPE_UNSPECIFIED] = "unspecified",
-		[NL80211_IFTYPE_ADHOC] = "adhoc",
-		[NL80211_IFTYPE_STATION] = "station",
-		[NL80211_IFTYPE_AP] = "ap",
-		[NL80211_IFTYPE_AP_VLAN] = "ap vlan",
-		[NL80211_IFTYPE_WDS] = "wds",
-		[NL80211_IFTYPE_MONITOR] = "monitor",
-		[NL80211_IFTYPE_MESH_POINT] = "mesh point",
-		[NL80211_IFTYPE_P2P_CLIENT] = "p2p client",
-		[NL80211_IFTYPE_P2P_GO] = "p2p go",
-		[NL80211_IFTYPE_P2P_DEVICE] = "p2p device",
-		[NL80211_IFTYPE_OCB] = "ocb",
-		[NL80211_IFTYPE_NAN] = "nan",
-	};
-
-	buf = kzalloc(buf_size, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	list_for_each_entry(wdev, &wiphy->wdev_list, list) {
-		offset += scnprintf(buf + offset, buf_size - offset,
-				    "wdev 0x%x\n"
-				    "interface type %s\n",
-				    wdev->identifier, iftype_str[wdev->iftype]);
-		offset = dfs_status_read_wdev(wiphy, wdev, buf, buf_size, offset);
-	}
-
+out:
 	r = simple_read_from_buffer(user_buf, count, ppos, buf, offset);
 
 	kfree(buf);
@@ -456,7 +434,8 @@ static ssize_t scan_dfs_relax_read(struct file *file, char __user *user_buf,
 				   size_t count, loff_t *ppos)
 {
 	struct wiphy *wiphy = file->private_data;
-	unsigned int r, offset, buf_size = PAGE_SIZE;
+	unsigned int offset, buf_size = PAGE_SIZE;
+	ssize_t r;
 	char *buf;
 
 	buf = kzalloc(buf_size, GFP_KERNEL);

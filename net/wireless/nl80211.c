@@ -23085,10 +23085,13 @@ void cfg80211_ch_switch_notify(struct net_device *dev,
 		break;
 	case NL80211_IFTYPE_AP:
 	case NL80211_IFTYPE_P2P_GO:
+		/* TODO: discuss if this grace period for old channel is needed */
+#if 0
 		if (wdev->links[link_id].ap.chandef.chan)
 			cfg80211_update_last_available(wdev->wiphy,
 						       &wdev->links[link_id].ap.chandef,
 						       0);
+#endif
 		wdev->links[link_id].ap.chandef = *chandef;
 		wdev->links[link_id].ap.reg_power =
 			wdev->links[link_id].ap.csa_reg_power;

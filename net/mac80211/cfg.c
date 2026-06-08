@@ -2163,6 +2163,7 @@ static int process_btwt_id_0(struct ieee80211_local *local,
 {
 	struct ieee80211_link_sta *link_sta;
 	struct ieee80211_twt_setup *twt;
+	struct ieee80211_twt_params *params;
 	unsigned int link_id;
 	int ret;
 
@@ -2174,11 +2175,14 @@ static int process_btwt_id_0(struct ieee80211_local *local,
 		return -ENOMEM;
 
 	twt->control |= IEEE80211_TWT_NEGO_TYPE_BTWT_MBR_MGMT << 2;
+	params = (struct ieee80211_twt_params *)twt->params;
 
 	for_each_sta_active_link(&sdata->vif, &sta->sta, link_sta, link_id) {
 		ret = drv_add_twt_setup(local, sdata, &sta->sta, link_id, twt);
 		if (ret)
 			break;
+
+		memset(params, 0, sizeof(*params));
 	}
 	kfree(twt);
 

@@ -3753,6 +3753,7 @@ void ieee80211_dfs_cac_cancel(struct ieee80211_local *local,
 void ieee80211_dfs_radar_detected_work(struct wiphy *wiphy,
 				       struct wiphy_work *work)
 {
+#define RADAR_DETECTED_MAX_TIMEOUT	(HZ / 2)
 	struct ieee80211_local *local =
 		container_of(work, struct ieee80211_local, radar_detected_work);
 	struct cfg80211_chan_def chandef;
@@ -3761,6 +3762,9 @@ void ieee80211_dfs_radar_detected_work(struct wiphy *wiphy,
 	lockdep_assert_wiphy(local->hw.wiphy);
 
 	list_for_each_entry_safe(ctx, tmp, &local->chanctx_list, list) {
+		struct ieee80211_sub_if_data *sta_sdata, *ap_sdata;
+		struct ieee80211_if_managed *ifmgd;
+
 		if (ctx->replace_state == IEEE80211_CHANCTX_REPLACES_OTHER ||
 		    !ctx->conf.def.chan || ctx->conf.def.chan->band != NL80211_BAND_5GHZ)
 			continue;
@@ -3768,12 +3772,43 @@ void ieee80211_dfs_radar_detected_work(struct wiphy *wiphy,
 		if (!ctx->radar_detected)
 			continue;
 
-		ctx->radar_detected = false;
-
-		chandef = ctx->conf.def;
-
 		ieee80211_dfs_cac_cancel(local, ctx);
-		cfg80211_radar_event(local->hw.wiphy, &chandef, GFP_KERNEL);
+
+		sta_sdata = ieee80211_get_ctx_interface(local, ctx, NL80211_IFTYPE_STATION);
+		ap_sdata = ieee80211_get_ctx_interface(local, ctx, NL80211_IFTYPE_AP);
+		if (ap_sdata && sta_sdata) {
+			unsigned long timeout = RADAR_DETECTED_MAX_TIMEOUT;
+			int link_id;
+
+			/* TODO: send radar hit measurement report */
+			for (link_id = 0; link_id < ARRAY_SIZE(sta_sdata->link); link_id++) {
+				struct ieee80211_link_data *link =
+					wiphy_dereference(wiphy, sta_sdata->link[link_id]);
+				struct ieee80211_chanctx_conf *chanctx_conf;
+
+				if (!link)
+					continue;
+
+				chanctx_conf = sdata_dereference(link->conf->chanctx_conf,
+								 sta_sdata);
+				if (!chanctx_conf || &ctx->conf != chanctx_conf)
+					continue;
+
+				timeout = min(msecs_to_jiffies(link->conf->beacon_int * 3),
+					      timeout);
+				break;
+			}
+
+			/* wait for csa beacon */
+			ifmgd = &sta_sdata->u.mgd;
+			wiphy_delayed_work_queue(local->hw.wiphy,
+						 &ifmgd->radar_detected_timeout_work,
+						 timeout);
+		} else {
+			ctx->radar_detected = false;
+			chandef = ctx->conf.def;
+			cfg80211_radar_event(local->hw.wiphy, &chandef, GFP_KERNEL);
+		}
 	}
 }
 

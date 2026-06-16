@@ -657,6 +657,8 @@ struct ieee80211_if_managed {
 		u8 dialog_token;
 		bool acked;
 	} uhr_omp;
+
+	struct wiphy_delayed_work radar_detected_timeout_work;
 };
 
 struct ieee80211_if_ibss {
@@ -2876,6 +2878,11 @@ bool ieee80211_is_radar_required(struct ieee80211_local *local,
 bool ieee80211_is_radio_idx_in_scan_req(struct wiphy *wiphy,
 					struct cfg80211_scan_request *scan_req,
 					int radio_idx);
+
+struct ieee80211_sub_if_data *
+ieee80211_get_ctx_interface(struct ieee80211_local *local,
+			    struct ieee80211_chanctx *ctx,
+			    enum nl80211_iftype type);
 
 void ieee80211_dfs_cac_timer_work(struct wiphy *wiphy, struct wiphy_work *work);
 void ieee80211_dfs_cac_cancel(struct ieee80211_local *local,

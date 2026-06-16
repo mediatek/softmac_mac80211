@@ -2577,3 +2577,20 @@ void ieee80211_iter_chan_contexts_mtx(
 			iter(hw, &ctx->conf, iter_data);
 }
 EXPORT_SYMBOL_GPL(ieee80211_iter_chan_contexts_mtx);
+
+struct ieee80211_sub_if_data *
+ieee80211_get_ctx_interface(struct ieee80211_local *local,
+			    struct ieee80211_chanctx *ctx,
+			    enum nl80211_iftype type)
+{
+	struct ieee80211_chanctx_user_iter iter;
+
+	for_each_chanctx_user_assigned(local, ctx, &iter) {
+		struct ieee80211_sub_if_data *sdata = iter.sdata;
+
+		if (sdata->vif.type == type)
+			return sdata;
+	}
+
+	return NULL;
+}

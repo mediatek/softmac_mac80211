@@ -3502,6 +3502,9 @@ ieee80211_sta_process_chanswitch(struct ieee80211_link_data *link,
 					  link->link_id, csa_ie.count,
 					  csa_ie.mode);
 
+	wiphy_delayed_work_cancel(sdata->local->hw.wiphy,
+				  &ifmgd->radar_detected_timeout_work);
+
 	/* we may have to handle timeout for deactivated link in software */
 	now = ktime_get_boottime();
 	csa_time_tu = (max_t(int, csa_ie.count, 1) - 1) * link->conf->beacon_int;
@@ -4810,6 +4813,9 @@ static void ieee80211_set_disassoc(struct ieee80211_sub_if_data *sdata,
 
 	ifmgd->uhr_omp.pending = 0;
 	ifmgd->uhr_omp.pending_init = 0;
+
+	wiphy_delayed_work_cancel(sdata->local->hw.wiphy,
+				  &ifmgd->radar_detected_timeout_work);
 }
 
 static void ieee80211_reset_ap_probe(struct ieee80211_sub_if_data *sdata)
@@ -8684,6 +8690,46 @@ static void ieee80211_neg_ttlm_timeout_work(struct wiphy *wiphy,
 	__ieee80211_disconnect(sdata);
 }
 
+static void ieee80211_radar_detected_timeout_work(struct wiphy *wiphy,
+						  struct wiphy_work *work)
+{
+	struct ieee80211_sub_if_data *sdata =
+		container_of(work, struct ieee80211_sub_if_data,
+			     u.mgd.radar_detected_timeout_work.work);
+	struct ieee80211_local *local = sdata->local;
+	struct cfg80211_chan_def *chandef = NULL;
+	struct ieee80211_chanctx *ctx, *tmp;
+
+	sdata_info(sdata,
+		   "Radar detected but no csa event from AP, disconnecting.\n");
+
+	list_for_each_entry_safe(ctx, tmp, &local->chanctx_list, list) {
+		struct ieee80211_sub_if_data *tmp_sdata;
+
+		if (ctx->replace_state == IEEE80211_CHANCTX_REPLACES_OTHER ||
+		    !ctx->conf.def.chan || ctx->conf.def.chan->band != NL80211_BAND_5GHZ)
+			continue;
+
+		if (!ctx->radar_detected)
+			continue;
+
+		tmp_sdata = ieee80211_get_ctx_interface(local, ctx,
+							NL80211_IFTYPE_STATION);
+		if (tmp_sdata != sdata)
+			continue;
+
+		ctx->radar_detected = false;
+		chandef = &ctx->conf.def;
+		break;
+	}
+
+	if (chandef)
+		cfg80211_radar_event(local->hw.wiphy, chandef, GFP_KERNEL);
+	else
+		sdata_info(sdata, "No radar-detected ctx found\n");
+	__ieee80211_disconnect(sdata);
+}
+
 static void
 ieee80211_neg_ttlm_add_suggested_map(struct sk_buff *skb,
 				     struct ieee80211_neg_ttlm *neg_ttlm)
@@ -9743,6 +9789,8 @@ void ieee80211_sta_setup_sdata(struct ieee80211_sub_if_data *sdata)
 				ieee80211_tid_to_link_map_work);
 	wiphy_delayed_work_init(&ifmgd->neg_ttlm_timeout_work,
 				ieee80211_neg_ttlm_timeout_work);
+	wiphy_delayed_work_init(&ifmgd->radar_detected_timeout_work,
+				ieee80211_radar_detected_timeout_work);
 	wiphy_work_init(&ifmgd->teardown_ttlm_work,
 			ieee80211_teardown_ttlm_work);
 	wiphy_hrtimer_work_init(&ifmgd->uhr_omp.status_work,

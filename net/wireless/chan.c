@@ -2041,11 +2041,6 @@ void cfg80211_sta_update_dfs_state(struct wireless_dev *wdev,
 		netdev_info(wdev->netdev, "Set CSA channel's DFS state to available\n");
 	}
 
-	/* avoid updating the dfs state during nop */
-	if (!cfg80211_chandef_dfs_usable(wiphy, bss_chandef) &&
-	    !cfg80211_chandef_dfs_available(wiphy, bss_chandef))
-		return;
-
 	if (associated && !csa_active) {
 		dfs_state = NL80211_DFS_AVAILABLE;
 		event = NL80211_RADAR_STA_CAC_SKIPPED;

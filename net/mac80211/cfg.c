@@ -5012,6 +5012,8 @@ __ieee80211_channel_switch(struct wiphy *wiphy, struct net_device *dev,
 		 * all assigned links are ready.
 		 */
 		for_each_sdata_link(local, link) {
+			if (link->sdata->vif.type != NL80211_IFTYPE_AP)
+				continue;
 			if (rcu_access_pointer(link->conf->chanctx_conf) == &chanctx->conf)
 				n_assigned++;
 			if (link->reserved_chanctx)
@@ -5027,6 +5029,9 @@ __ieee80211_channel_switch(struct wiphy *wiphy, struct net_device *dev,
 
 		for_each_sdata_link(local, link) {
 			struct ieee80211_link_data *tmp;
+
+			if (link->sdata->vif.type != NL80211_IFTYPE_AP)
+				continue;
 
 			for_each_valid_link(&link->sdata->wdev, link_id) {
 				tmp = sdata_dereference(link->sdata->link[link_id],

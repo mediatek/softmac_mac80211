@@ -18216,6 +18216,9 @@ nl80211_add_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
 	if (wdev->iftype != NL80211_IFTYPE_AP)
 		return -EOPNOTSUPP;
 
+	if (!info->attrs[NL80211_ATTR_BROADCAST_TWT_PARAMS])
+		return -EINVAL;
+
 	ret = nla_parse_nested(tb, NL80211_BROADCAST_TWT_ATTR_MAX,
 			       info->attrs[NL80211_ATTR_BROADCAST_TWT_PARAMS],
 			       nl80211_broadcast_twt_policy, info->extack);
@@ -18272,6 +18275,9 @@ nl80211_del_broadcast_twt(struct sk_buff *skb, struct genl_info *info)
 
 	if (wdev->iftype != NL80211_IFTYPE_AP)
 		return -EOPNOTSUPP;
+
+	if (!info->attrs[NL80211_ATTR_BROADCAST_TWT_PARAMS])
+		return -EINVAL;
 
 	ret = nla_parse_nested(tb, NL80211_BROADCAST_TWT_ATTR_MAX,
 			       info->attrs[NL80211_ATTR_BROADCAST_TWT_PARAMS],

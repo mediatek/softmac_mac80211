@@ -4518,7 +4518,8 @@ void ieee80211_csa_finish(struct ieee80211_vif *vif, unsigned int link_id)
 	rcu_read_lock();
 
 	link_data = rcu_dereference(sdata->link[link_id]);
-	if (WARN_ON(!link_data)) {
+	if (!link_data) {
+		sdata_info(sdata, "enter CSA finish after link data is removed\n");
 		rcu_read_unlock();
 		return;
 	}

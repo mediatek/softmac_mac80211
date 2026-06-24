@@ -2,7 +2,9 @@
 #define __BACKPORT_MULDF_PRINT_MT76_H_
 #include <linux/printk.h>
 #include <linux/dev_printk.h>
+#ifdef CONFIG_MULDF_HELPER
 #include <linux/soc/mediatek/muldf.h>
+#endif
 
 #define MULDF_MODULE_NAME	"mt76"
 
@@ -10,6 +12,7 @@
 #define dev_fmt(fmt) fmt
 #endif
 
+#ifdef CONFIG_MULDF_HELPER
 #define __muldf_print_unspec(level, fmt, ...)					\
 	muldf_print(level, MULDF_MODULE_NAME, "UNSPEC", "UNSPEC", NULL,		\
 		    __func__, __LINE__, fmt "\n", ##__VA_ARGS__)
@@ -18,6 +21,13 @@
 #define __muldf_warn(fmt, ...)	__muldf_print_unspec(MTK_MSG_WARNING, fmt, ##__VA_ARGS__)
 #define __muldf_info(fmt, ...)	__muldf_print_unspec(MTK_MSG_INFO, fmt, ##__VA_ARGS__)
 #define __muldf_dbg(fmt, ...)	__muldf_print_unspec(MTK_MSG_DEBUG, fmt, ##__VA_ARGS__)
+#else
+#define __muldf_err(fmt, ...)	do {} while (0)
+#define __muldf_warn(fmt, ...)	do {} while (0)
+#define __muldf_info(fmt, ...)	do {} while (0)
+#define __muldf_dbg(fmt, ...)	do {} while (0)
+#define __muldf_print_unspec(level, fmt, ...)	do {} while (0)
+#endif
 
 #undef dev_err
 #define dev_err(dev, fmt, ...) do {	\

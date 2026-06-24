@@ -240,7 +240,8 @@ static ssize_t dfs_status_read(struct file *file, char __user *user_buf,
 			}
 		}
 
-		if (cfg80211_is_sub_chan(background_chandef, chan, false)) {
+		if (rdev->background_radar_wdev &&
+		    cfg80211_is_sub_chan(background_chandef, chan, false)) {
 			is_background = true;
 			if (rdev->background_cac_started &&
 			    chan->dfs_state == NL80211_DFS_USABLE) {

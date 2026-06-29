@@ -5623,6 +5623,9 @@ static void __ieee80211_rx_handle_packet(struct ieee80211_hw *hw,
 			rx_data_pending = false;
 		}
 
+		if (!ieee80211_rx_valid_freq(status->freq, link))
+			continue;
+
 		rx.sdata = sdata;
 		rx.local = sdata->local;
 		rx.link = link;

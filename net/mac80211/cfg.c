@@ -3998,7 +3998,8 @@ static void ieee80211_end_cac(struct wiphy *wiphy,
 					  &link_data->dfs_cac_timer_work);
 
 		if (sdata->wdev.links[link_id].cac_started) {
-			ieee80211_link_release_channel(link_data);
+			if (!sdata->wdev.links[link_id].ap.beacon_interval)
+				ieee80211_link_release_channel(link_data);
 			sdata->wdev.links[link_id].cac_started = false;
 		}
 	}

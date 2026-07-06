@@ -4452,6 +4452,20 @@ cfg80211_beacon_dup(struct cfg80211_beacon_data *beacon)
 		new_beacon->tail_len = beacon->tail_len;
 		new_beacon->tail = pos;
 		memcpy(pos, beacon->tail, beacon->tail_len);
+
+		if (beacon->ht_oper)
+			new_beacon->ht_oper = (const void *)(new_beacon->tail +
+				((const u8 *)beacon->ht_oper - beacon->tail));
+		if (beacon->vht_oper)
+			new_beacon->vht_oper = (const void *)(new_beacon->tail +
+				((const u8 *)beacon->vht_oper - beacon->tail));
+		if (beacon->he_oper)
+			new_beacon->he_oper = (const void *)(new_beacon->tail +
+				((const u8 *)beacon->he_oper - beacon->tail));
+		if (beacon->eht_oper)
+			new_beacon->eht_oper = (const void *)(new_beacon->tail +
+				((const u8 *)beacon->eht_oper - beacon->tail));
+
 		pos += beacon->tail_len;
 	}
 	if (beacon->beacon_ies_len) {

@@ -3946,6 +3946,11 @@ u8 ieee80211_link_sta_cap_nss(struct ieee80211_link_sta *pub)
 
 	rcu_read_lock();
 	link_sta = rcu_dereference(sta->link[pub->link_id]);
+	if (unlikely(!link_sta)) {
+		rcu_read_unlock();
+		return 1;
+	}
+
 	nss = link_sta->capa_nss;
 	rcu_read_unlock();
 

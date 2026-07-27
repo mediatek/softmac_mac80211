@@ -3010,7 +3010,7 @@ int ieee80211_mgd_set_epcs(struct ieee80211_sub_if_data *sdata, bool enable);
 int ieee80211_mgd_assoc_ml_reconf(struct ieee80211_sub_if_data *sdata,
 				  struct cfg80211_ml_reconf_req *req);
 
-void ieee80211_stop_mbssid(struct ieee80211_sub_if_data *sdata);
+void ieee80211_stop_mbssid(struct ieee80211_sub_if_data *sdata, unsigned int link_id);
 
 void
 ieee80211_uhr_cap_ie_to_sta_uhr_cap(struct ieee80211_sub_if_data *sdata,

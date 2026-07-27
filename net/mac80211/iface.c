@@ -810,65 +810,69 @@ static void ieee80211_do_stop(struct ieee80211_sub_if_data *sdata, bool going_do
 		ieee80211_add_virtual_monitor(local, NULL);
 }
 
-void ieee80211_stop_mbssid(struct ieee80211_sub_if_data *sdata)
+void ieee80211_stop_mbssid(struct ieee80211_sub_if_data *sdata, unsigned int link_id)
 {
 	struct ieee80211_sub_if_data *tx_sdata;
 	struct ieee80211_bss_conf *link_conf, *tx_bss_conf;
 	struct ieee80211_link_data *tx_link, *link;
-	unsigned int link_id;
+
+	if (link_id >= IEEE80211_MLD_MAX_NUM_LINKS)
+		return;
 
 	lockdep_assert_wiphy(sdata->local->hw.wiphy);
 
-	/* Check if any of the links of current sdata is an MBSSID. */
-	for_each_vif_active_link(&sdata->vif, link_conf, link_id) {
-		tx_bss_conf = sdata_dereference(link_conf->tx_bss_conf, sdata);
-		if (!tx_bss_conf)
+	link_conf = sdata_dereference(sdata->vif.link_conf[link_id], sdata);
+	if (!link_conf)
+		return;
+
+	tx_bss_conf = sdata_dereference(link_conf->tx_bss_conf, sdata);
+	if (!tx_bss_conf)
+		return;
+
+	tx_sdata = vif_to_sdata(tx_bss_conf->vif);
+	RCU_INIT_POINTER(link_conf->tx_bss_conf, NULL);
+
+	/* If we are not tx sdata reset tx sdata's tx_bss_conf to avoid recusrion
+	 * while closing tx sdata at the end of outer loop below.
+	 */
+	if (sdata != tx_sdata) {
+		tx_link = sdata_dereference(tx_sdata->link[tx_bss_conf->link_id],
+					    tx_sdata);
+		if (!tx_link)
+			return;
+
+		RCU_INIT_POINTER(tx_link->conf->tx_bss_conf, NULL);
+	}
+
+	/* loop through sdatas to find if any of their links
+	 * belong to same MBSSID set as the one getting deleted.
+	 */
+	for_each_sdata_link(tx_sdata->local, link) {
+		struct ieee80211_sub_if_data *link_sdata = link->sdata;
+
+		if (link_sdata == sdata || link_sdata == tx_sdata ||
+		    rcu_access_pointer(link->conf->tx_bss_conf) != tx_bss_conf)
 			continue;
 
-		tx_sdata = vif_to_sdata(tx_bss_conf->vif);
-		RCU_INIT_POINTER(link_conf->tx_bss_conf, NULL);
+		RCU_INIT_POINTER(link->conf->tx_bss_conf, NULL);
 
-		/* If we are not tx sdata reset tx sdata's tx_bss_conf to avoid recusrion
-		 * while closing tx sdata at the end of outer loop below.
+		/* Remove all links of matching MLD until dynamic link
+		 * removal can be supported.
 		 */
-		if (sdata != tx_sdata) {
-			tx_link = sdata_dereference(tx_sdata->link[tx_bss_conf->link_id],
-						    tx_sdata);
-			if (!tx_link)
-				continue;
-
-			RCU_INIT_POINTER(tx_link->conf->tx_bss_conf, NULL);
-		}
-
-		/* loop through sdatas to find if any of their links
-		 * belong to same MBSSID set as the one getting deleted.
-		 */
-		for_each_sdata_link(tx_sdata->local, link) {
-			struct ieee80211_sub_if_data *link_sdata = link->sdata;
-
-			if (link_sdata == sdata || link_sdata == tx_sdata ||
-			    rcu_access_pointer(link->conf->tx_bss_conf) != tx_bss_conf)
-				continue;
-
-			RCU_INIT_POINTER(link->conf->tx_bss_conf, NULL);
-
-			/* Remove all links of matching MLD until dynamic link
-			 * removal can be supported.
-			 */
-			cfg80211_stop_iface(link_sdata->wdev.wiphy, &link_sdata->wdev,
-					    GFP_KERNEL);
-		}
-
-		/* If we are not tx sdata, remove links of tx sdata and proceed */
-		if (sdata != tx_sdata && ieee80211_sdata_running(tx_sdata))
-			cfg80211_stop_iface(tx_sdata->wdev.wiphy,
-					    &tx_sdata->wdev, GFP_KERNEL);
+		cfg80211_stop_iface(link_sdata->wdev.wiphy, &link_sdata->wdev,
+				    GFP_KERNEL);
 	}
+
+	/* If we are not tx sdata, remove links of tx sdata and proceed */
+	if (sdata != tx_sdata && ieee80211_sdata_running(tx_sdata))
+		cfg80211_stop_iface(tx_sdata->wdev.wiphy,
+				    &tx_sdata->wdev, GFP_KERNEL);
 }
 
 static int ieee80211_stop(struct net_device *dev)
 {
 	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
+	unsigned int link_id;
 
 	/* close dependent VLAN interfaces before locking wiphy */
 	if (sdata->vif.type == NL80211_IFTYPE_AP) {
@@ -887,8 +891,10 @@ static int ieee80211_stop(struct net_device *dev)
 	/* Close the dependent MBSSID interfaces with wiphy lock as we may be
 	 * terminating its partner links too in case of MLD.
 	 */
-	if (sdata->vif.type == NL80211_IFTYPE_AP)
-		ieee80211_stop_mbssid(sdata);
+	if (sdata->vif.type == NL80211_IFTYPE_AP) {
+		for_each_valid_link(&sdata->wdev, link_id)
+			ieee80211_stop_mbssid(sdata, link_id);
+	}
 
 	ieee80211_do_stop(sdata, true);
 

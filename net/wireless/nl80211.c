@@ -18381,6 +18381,17 @@ out:
 	return err;
 }
 
+#define NL80211_MTK_VENDOR_ID			0x0ce7
+#define NL80211_MTK_VENDOR_SUBCMD_CSI_CTRL	0xc2
+#define NL80211_MTK_CSI_VENDOR_DUMP_MIN_ALLOC	SKB_WITH_OVERHEAD(0x1800)
+
+static bool
+nl80211_is_mtk_csi_vendor_cmd(const struct wiphy_vendor_command *vcmd)
+{
+	return vcmd->info.vendor_id == NL80211_MTK_VENDOR_ID &&
+	       vcmd->info.subcmd == NL80211_MTK_VENDOR_SUBCMD_CSI_CTRL;
+}
+
 static int nl80211_vendor_cmd_dump(struct sk_buff *skb,
 				   struct netlink_callback *cb)
 {
@@ -18421,6 +18432,16 @@ static int nl80211_vendor_cmd_dump(struct sk_buff *skb,
 				goto out;
 			}
 		}
+	}
+
+	if (nl80211_is_mtk_csi_vendor_cmd(vcmd) && !skb->len &&
+	    skb_tailroom(skb) < NL80211_MTK_CSI_VENDOR_DUMP_MIN_ALLOC) {
+		err = pskb_expand_head(skb, 0,
+				       NL80211_MTK_CSI_VENDOR_DUMP_MIN_ALLOC -
+				       skb_tailroom(skb),
+				       GFP_KERNEL);
+		if (err)
+			goto out;
 	}
 
 	while (1) {

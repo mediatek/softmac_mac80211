@@ -1411,6 +1411,48 @@ void cfg80211_stop_background_radar_detection(struct wireless_dev *wdev)
 	rdev->background_radar_wdev = NULL;
 }
 
+void cfg80211_background_radar_ownership_transfer(struct wireless_dev *wdev,
+						  unsigned int link_id)
+{
+	struct wiphy *wiphy = wdev->wiphy;
+	struct cfg80211_registered_device *rdev = wiphy_to_rdev(wiphy);
+	struct cfg80211_chan_def *chandef = wdev_chandef(wdev, link_id);
+	struct wireless_dev *tmp;
+
+	lockdep_assert_wiphy(wiphy);
+
+	if (wdev != rdev->background_radar_wdev ||
+	    !chandef || !chandef->chan ||
+	    chandef->chan->band != NL80211_BAND_5GHZ)
+		return;
+
+	list_for_each_entry(tmp, &wiphy->wdev_list, list) {
+		unsigned int link;
+
+		if (tmp->iftype != NL80211_IFTYPE_AP)
+			continue;
+
+		for_each_valid_link(tmp, link) {
+			if (tmp == wdev && link == link_id)
+				continue;
+
+			chandef = wdev_chandef(tmp, link);
+			if (chandef && chandef->chan &&
+			    chandef->chan->band == NL80211_BAND_5GHZ) {
+				netdev_info(wdev->netdev,
+					    "Background radar ownership transferred to %s\n",
+					    tmp->netdev->name);
+				rdev->background_radar_wdev = tmp;
+				return;
+			}
+		}
+	}
+
+	/* no available interface to transfer, stop detection */
+	cfg80211_stop_background_radar_detection(wdev);
+}
+EXPORT_SYMBOL(cfg80211_background_radar_ownership_transfer);
+
 int cfg80211_assoc_ml_reconf(struct cfg80211_registered_device *rdev,
 			     struct net_device *dev,
 			     struct cfg80211_ml_reconf_req *req)

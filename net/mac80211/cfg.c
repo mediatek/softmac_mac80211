@@ -2143,6 +2143,8 @@ static int ieee80211_stop_ap(struct wiphy *wiphy, struct net_device *dev,
 				   GFP_KERNEL, link_id);
 	}
 
+	cfg80211_background_radar_ownership_transfer(&sdata->wdev, link_id);
+
 	drv_stop_ap(sdata->local, sdata, link_conf);
 
 	/* free all potentially still buffered bcast frames */

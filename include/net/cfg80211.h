@@ -9968,6 +9968,19 @@ void cfg80211_background_radar_update_channel(struct wiphy *wiphy,
 void cfg80211_background_cac_abort(struct wiphy *wiphy);
 
 /**
+ * cfg80211_background_radar_ownership_transfer - Transfer the ownership of background
+ *						  radar if required
+ * @wdev: the wireless device
+ * @link_id: valid link_id for MLO operation or 0 otherwise.
+ *
+ * This function is called when a link is going to be removed to check whether
+ * the ownership of background radar should be transferred or if it should be
+ * stopped due to no available owner.
+ */
+void cfg80211_background_radar_ownership_transfer(struct wireless_dev *wdev,
+						  unsigned int link_id);
+
+/**
  * cfg80211_gtk_rekey_notify - notify userspace about driver rekeying
  * @dev: network device
  * @bssid: BSSID of AP (to avoid races)

@@ -3,7 +3,7 @@
 
 #include_next <linux/jiffies.h>
 
-#if LINUX_VERSION_IS_LESS(6,13,0)
+#ifndef secs_to_jiffies
 /**
  * secs_to_jiffies: - convert seconds to jiffies
  * @_secs: time in seconds
@@ -16,6 +16,6 @@
  * Return: jiffies value
  */
 #define secs_to_jiffies(_secs) (unsigned long)((_secs) * HZ)
-#endif
+#endif /* secs_to_jiffies */
 
 #endif /* _BACKPORTS_LINUX_JIFFIES_H */

@@ -4936,7 +4936,7 @@ void ieee80211_check_fast_rx(struct sta_info *sta)
 		set_offload = test_and_clear_sta_flag(sta, WLAN_STA_DECAP_OFFLOAD);
 
 	if (set_offload)
-		drv_sta_set_decap_offload(local, sdata, &sta->sta, assign);
+		drv_sta_set_decap_offload(local, sdata, &sta->sta, offload);
 
 	spin_lock_bh(&sta->lock);
 	old = rcu_dereference_protected(sta->fast_rx, true);

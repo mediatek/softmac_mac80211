@@ -1892,6 +1892,7 @@ bool cfg80211_reg_check_beaconing(struct wiphy *wiphy,
 }
 EXPORT_SYMBOL(cfg80211_reg_check_beaconing);
 
+#if 0
 static bool cfg80211_can_set_monitor_channel(struct cfg80211_registered_device *rdev,
 					     struct cfg80211_chan_def *chandef)
 {
@@ -1922,6 +1923,7 @@ static bool cfg80211_can_set_monitor_channel(struct cfg80211_registered_device *
 
 	return true;
 }
+#endif
 
 int cfg80211_start_radar_detection_post_csa(struct wiphy *wiphy,
 					    struct wireless_dev *wdev,
@@ -1974,8 +1976,11 @@ int cfg80211_set_monitor_channel(struct cfg80211_registered_device *rdev,
 {
 	if (!rdev->ops->set_monitor_channel)
 		return -EOPNOTSUPP;
+	/* To support AP + monitor interfaces coexistence */
+#if 0
 	if (!cfg80211_can_set_monitor_channel(rdev, chandef))
 		return -EBUSY;
+#endif
 
 	return rdev_set_monitor_channel(rdev, dev, chandef);
 }

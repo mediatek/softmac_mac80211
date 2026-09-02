@@ -3568,6 +3568,14 @@ u64 ieee80211_calculate_rx_timestamp(struct ieee80211_hw *hw,
 
 	/* Fill cfg80211 rate info */
 	switch (status->encoding) {
+	case RX_ENC_UHR:
+		ri.flags |= RATE_INFO_FLAGS_UHR_MCS;
+		ri.mcs = status->rate_idx;
+		ri.nss = status->nss;
+		ri.eht_ru_alloc = status->uhr.ru;
+		if (status->enc_flags & RX_ENC_FLAG_SHORT_GI)
+			ri.flags |= RATE_INFO_FLAGS_SHORT_GI;
+		break;
 	case RX_ENC_EHT:
 		ri.flags |= RATE_INFO_FLAGS_EHT_MCS;
 		ri.mcs = status->rate_idx;

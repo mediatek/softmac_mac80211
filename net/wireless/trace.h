@@ -2141,20 +2141,22 @@ DECLARE_EVENT_CLASS(rdev_pmksa,
 
 TRACE_EVENT(rdev_probe_peer,
 	TP_PROTO(struct wiphy *wiphy, struct net_device *netdev,
-		 const u8 *peer),
-	TP_ARGS(wiphy, netdev, peer),
+		 const u8 *peer, int link_id),
+	TP_ARGS(wiphy, netdev, peer, link_id),
 	TP_STRUCT__entry(
 		WIPHY_ENTRY
 		NETDEV_ENTRY
 		MAC_ENTRY(peer)
+		__field(int, link_id)
 	),
 	TP_fast_assign(
 		WIPHY_ASSIGN;
 		NETDEV_ASSIGN;
 		MAC_ASSIGN(peer, peer);
+		__entry->link_id = link_id;
 	),
-	TP_printk(WIPHY_PR_FMT ", " NETDEV_PR_FMT ", %pM",
-		  WIPHY_PR_ARG, NETDEV_PR_ARG, __entry->peer)
+	TP_printk(WIPHY_PR_FMT ", " NETDEV_PR_FMT ", %pM, link_id: %d",
+		  WIPHY_PR_ARG, NETDEV_PR_ARG, __entry->peer, __entry->link_id)
 );
 
 DEFINE_EVENT(rdev_pmksa, rdev_set_pmksa,

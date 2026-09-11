@@ -16598,6 +16598,7 @@ static int nl80211_probe_peer(struct sk_buff *skb, struct genl_info *info)
 	struct sk_buff *msg;
 	void *hdr;
 	const u8 *addr = NULL;
+	int link_id = -1;
 	u64 cookie;
 	int err;
 
@@ -16624,6 +16625,13 @@ static int nl80211_probe_peer(struct sk_buff *skb, struct genl_info *info)
 		return -EOPNOTSUPP;
 	}
 
+	if (info->attrs[NL80211_ATTR_MLO_LINK_ID]) {
+		/* the attribute policy already range-checks the value */
+		link_id = nla_get_u8(info->attrs[NL80211_ATTR_MLO_LINK_ID]);
+		if (!wdev->valid_links || !(wdev->valid_links & BIT(link_id)))
+			return -EINVAL;
+	}
+
 	if (!rdev->ops->probe_peer)
 		return -EOPNOTSUPP;
 
@@ -16639,7 +16647,7 @@ static int nl80211_probe_peer(struct sk_buff *skb, struct genl_info *info)
 	}
 
 	cookie = cfg80211_assign_cookie(rdev);
-	err = rdev_probe_peer(rdev, dev, addr, cookie);
+	err = rdev_probe_peer(rdev, dev, addr, link_id, cookie);
 	if (err)
 		goto free_msg;
 

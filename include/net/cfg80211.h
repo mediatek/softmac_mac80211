@@ -5179,6 +5179,8 @@ struct mgmt_frame_regs {
  * @probe_peer: probe a connected peer (AP: STA MAC required; STA: no MAC),
  *	must use the @cookie as provided which is later passed to
  *	cfg80211_probe_status().
+ *	@link_id is the MLO link to probe, or -1 to let the driver/mac80211
+ *	pick the link automatically.
  *
  * @set_noack_map: Set the NoAck Map for the TIDs.
  *
@@ -5597,7 +5599,7 @@ struct cfg80211_ops {
 			     const u8 *peer, enum nl80211_tdls_operation oper);
 
 	int	(*probe_peer)(struct wiphy *wiphy, struct net_device *dev,
-			      const u8 *peer, u64 cookie);
+			      const u8 *peer, int link_id, u64 cookie);
 
 	int	(*set_noack_map)(struct wiphy *wiphy,
 				  struct net_device *dev,

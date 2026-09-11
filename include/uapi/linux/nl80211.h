@@ -927,6 +927,10 @@
  *	In AP/GO mode, %NL80211_ATTR_MAC is required to identify the client.
  *	In STA/P2P-client mode, %NL80211_ATTR_MAC must be omitted (the AP is
  *	implied); the driver must advertise %NL80211_EXT_FEATURE_PROBE_AP.
+ *	For an MLO peer, %NL80211_ATTR_MLO_LINK_ID may optionally be given to
+ *	select the specific link the null data frame is sent on; if given, it
+ *	must identify a link that is valid for the peer, or the command fails
+ *	with -EINVAL. If omitted, the link is chosen automatically.
  *	The command returns a direct reply with an %NL80211_ATTR_COOKIE that
  *	is later used to match up the event with the request. The event
  *	includes the same data and has %NL80211_ATTR_ACK set if the frame

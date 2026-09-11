@@ -5186,7 +5186,7 @@ static int ieee80211_set_rekey_data(struct wiphy *wiphy,
 }
 
 static int ieee80211_probe_peer(struct wiphy *wiphy, struct net_device *dev,
-				const u8 *peer, u64 cookie)
+				const u8 *peer, int req_link_id, u64 cookie)
 {
 	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
 	struct ieee80211_local *local = sdata->local;
@@ -5235,6 +5235,8 @@ static int ieee80211_probe_peer(struct wiphy *wiphy, struct net_device *dev,
 			 * per-link address for the client's link.
 			 */
 			link_id = sta->deflink.link_id;
+			if (req_link_id >= 0 && req_link_id != link_id)
+				return -EINVAL;
 			conf = wiphy_dereference(local->hw.wiphy,
 						 sdata->vif.link_conf[link_id]);
 			if (!conf)
@@ -5242,15 +5244,22 @@ static int ieee80211_probe_peer(struct wiphy *wiphy, struct net_device *dev,
 			src_addr = conf->addr;
 		} else {
 			/*
-			 * MLO client (AP or STA mode), or STA mode:
-			 * always use LINK_UNSPECIFIED and MLD address.
+			 * MLO client (AP or STA mode), or STA mode: use
+			 * the caller-selected link, or let mac80211/the
+			 * driver pick one automatically.
 			 */
-			link_id = IEEE80211_LINK_UNSPECIFIED;
+			if (req_link_id >= 0 &&
+			    !(sta->sta.valid_links & BIT(req_link_id)))
+				return -EINVAL;
+			link_id = req_link_id >= 0 ? req_link_id :
+				  IEEE80211_LINK_UNSPECIFIED;
 			src_addr = sdata->vif.addr;
 		}
 		/* MLD transmissions must not rely on the band */
 		band = 0;
 	} else {
+		if (req_link_id >= 0)
+			return -EINVAL;
 		chanctx_conf = wiphy_dereference(local->hw.wiphy,
 						 sdata->vif.bss_conf.chanctx_conf);
 		if (WARN_ON(!chanctx_conf))
@@ -5286,8 +5295,6 @@ static int ieee80211_probe_peer(struct wiphy *wiphy, struct net_device *dev,
 	info->flags |= IEEE80211_TX_CTL_REQ_TX_STATUS |
 		       IEEE80211_TX_INTFL_NL80211_FRAME_TX |
 		       IEEE80211_TX_CTL_USE_MINRATE;
-	if (ieee80211_vif_is_mld(&sdata->vif))
-		info->control.flags |= IEEE80211_TX_CTRL_MLO_LINK_UNSPEC;
 	info->band = band;
 	info->control.flags |= u32_encode_bits(link_id,
 					       IEEE80211_TX_CTRL_MLO_LINK);

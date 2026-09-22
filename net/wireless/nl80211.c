@@ -1125,6 +1125,7 @@ static const struct nla_policy nl80211_policy[NUM_NL80211_ATTR] = {
 	[NL80211_ATTR_CNTDWN_OFFS_STA_PROF] = { .type = NLA_BINARY },
 	[NL80211_ATTR_CRTI_UPDATE_EVENT] = { .type = NLA_U8 },
 	[NL80211_ATTR_VENDOR_MTK_STA] = { .type = NLA_FLAG },
+	[NL80211_ATTR_MLD_CAPA_AND_OPS] = { .type = NLA_U16 },
 	[NL80211_ATTR_BROADCAST_TWT_PARAMS] =
 		NLA_POLICY_NESTED(nl80211_broadcast_twt_policy),
 };
@@ -9005,7 +9006,7 @@ int cfg80211_check_station_change(struct wiphy *wiphy,
 
 	/* Accept EMLSR capabilities only for AP client before association */
 	if (statype != CFG80211_STA_AP_CLIENT_UNASSOC &&
-	    params->eml_cap_present)
+	    (params->eml_cap_present || params->mld_cap_present))
 		return -EINVAL;
 
 	switch (statype) {
@@ -9410,6 +9411,12 @@ static int nl80211_set_station(struct sk_buff *skb, struct genl_info *info)
 			nla_get_u16(info->attrs[NL80211_ATTR_EML_CAPABILITY]);
 	}
 
+	if (info->attrs[NL80211_ATTR_MLD_CAPA_AND_OPS]) {
+		params.mld_cap_present = true;
+		params.mld_cap =
+			nla_get_u16(info->attrs[NL80211_ATTR_MLD_CAPA_AND_OPS]);
+	}
+
 	if (params.sta_flags_mask & BIT(NL80211_STA_FLAG_CIP) &&
 	    params.sta_flags_set & BIT(NL80211_STA_FLAG_CIP)) {
 		if (!cfg80211_cigtk_supported(wdev, info))
@@ -9637,6 +9644,12 @@ static int nl80211_new_station(struct sk_buff *skb, struct genl_info *info)
 		params.eml_cap_present = true;
 		params.eml_cap =
 			nla_get_u16(info->attrs[NL80211_ATTR_EML_CAPABILITY]);
+	}
+
+	if (info->attrs[NL80211_ATTR_MLD_CAPA_AND_OPS]) {
+		params.mld_cap_present = true;
+		params.mld_cap =
+			nla_get_u16(info->attrs[NL80211_ATTR_MLD_CAPA_AND_OPS]);
 	}
 
 	if (params.sta_flags_mask & BIT(NL80211_STA_FLAG_CIP) &&

@@ -1986,6 +1986,8 @@ struct station_parameters {
 	u16 airtime_weight;
 	bool eml_cap_present;
 	u16 eml_cap;
+	bool mld_cap_present;
+	u16 mld_cap;
 	struct link_station_parameters link_sta_params;
 	bool epp_peer;
 	const u8 *nmi_mac;

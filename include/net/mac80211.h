@@ -2810,6 +2810,7 @@ struct ieee80211_sta {
 	struct ieee80211_nan_peer_sched *nan_sched;
 
 	bool vendor_mtk;
+	u16 mld_cap;
 
 	/* must be last */
 	u8 drv_priv[] __aligned(sizeof(void *));

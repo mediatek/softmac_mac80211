@@ -2656,6 +2656,9 @@ static int sta_apply_parameters(struct ieee80211_local *local,
 	if (params->eml_cap_present)
 		sta->sta.eml_cap = params->eml_cap;
 
+	if (params->mld_cap_present)
+		sta->sta.mld_cap = params->mld_cap;
+
 	if (params->sta_flags_set & BIT(NL80211_STA_FLAG_CIP))
 		sta->sta.cip = true;
 

@@ -4090,6 +4090,7 @@ enum ieee80211_rate_control_changed {
 	/* Defined for mtk vendor command */
 	IEEE80211_RC_VHT_OMN_CHANGED	= BIT(6),
 	IEEE80211_RC_CODING_TYPE_CHANGED= BIT(7),
+	IEEE80211_RC_CSA_BW_CHANGED	= BIT(8),
 };
 
 /**

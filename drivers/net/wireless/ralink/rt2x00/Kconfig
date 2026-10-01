@@ -209,7 +209,7 @@ endif
 config RT2800SOC
 	tristate "Ralink WiSoC support"
 	depends on m
-	depends on OF && (SOC_RT288X || SOC_RT305X || SOC_MT7620 || COMPILE_TEST)
+	depends on OF && (SOC_RT288X || SOC_RT305X || SOC_RT3883 || SOC_MT7620 || COMPILE_TEST)
 	select RT2X00_LIB_MMIO
 	select RT2X00_LIB_CRYPTO
 	select RT2X00_LIB_FIRMWARE
@@ -223,33 +223,33 @@ config RT2800SOC
 
 
 config RT2800_LIB
-	tristate
+	tristate "RT2800 USB/PCI support"
 	depends on m
 	depends on CRC_CCITT
 
 config RT2800_LIB_MMIO
-	tristate
+	tristate "RT2800 MMIO support"
 	depends on m
 	select RT2X00_LIB_MMIO
 	select RT2800_LIB
 
 config RT2X00_LIB_MMIO
-	tristate
+	tristate "RT2x00 MMIO support"
 	depends on m
 	select RT2X00_LIB
 
 config RT2X00_LIB_PCI
-	tristate
+	tristate "RT2x00 PCI support"
 	depends on m
 	select RT2X00_LIB
 
 config RT2X00_LIB_USB
-	tristate
+	tristate "RT2x00 USB support"
 	depends on m
 	select RT2X00_LIB
 
 config RT2X00_LIB
-	tristate
+	tristate "RT2x00 support"
 	depends on m
 
 config RT2X00_LIB_FIRMWARE

@@ -35,7 +35,7 @@ unsigned int rt2800mmio_get_dma_done(struct data_queue *queue)
 	case QID_AC_VI:
 	case QID_AC_BE:
 	case QID_AC_BK:
-		qid = queue->qid;
+		qid = rt2x00_ac_to_hwq(queue->qid);
 		idx = rt2x00mmio_register_read(rt2x00dev, TX_DTX_IDX(qid));
 		break;
 	case QID_MGMT:
@@ -456,6 +456,7 @@ void rt2800mmio_kick_queue(struct data_queue *queue)
 {
 	struct rt2x00_dev *rt2x00dev = queue->rt2x00dev;
 	struct queue_entry *entry;
+	u8 qid;
 
 	switch (queue->qid) {
 	case QID_AC_VO:
@@ -464,7 +465,8 @@ void rt2800mmio_kick_queue(struct data_queue *queue)
 	case QID_AC_BK:
 		WARN_ON_ONCE(rt2x00queue_empty(queue));
 		entry = rt2x00queue_get_entry(queue, Q_INDEX);
-		rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX(queue->qid),
+		qid = rt2x00_ac_to_hwq(queue->qid);
+		rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX(qid),
 					  entry->entry_idx);
 		hrtimer_start(&rt2x00dev->txstatus_timer,
 			      TXSTATUS_TIMEOUT, HRTIMER_MODE_REL);
@@ -666,36 +668,36 @@ int rt2800mmio_init_queues(struct rt2x00_dev *rt2x00dev)
 	 * Initialize registers.
 	 */
 	entry_priv = rt2x00dev->tx[0].entries[0].priv_data;
-	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR0,
-				  entry_priv->desc_dma);
-	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT0,
-				  rt2x00dev->tx[0].limit);
-	rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX0, 0);
-	rt2x00mmio_register_write(rt2x00dev, TX_DTX_IDX0, 0);
-
-	entry_priv = rt2x00dev->tx[1].entries[0].priv_data;
-	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR1,
-				  entry_priv->desc_dma);
-	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT1,
-				  rt2x00dev->tx[1].limit);
-	rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX1, 0);
-	rt2x00mmio_register_write(rt2x00dev, TX_DTX_IDX1, 0);
-
-	entry_priv = rt2x00dev->tx[2].entries[0].priv_data;
-	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR2,
-				  entry_priv->desc_dma);
-	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT2,
-				  rt2x00dev->tx[2].limit);
-	rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX2, 0);
-	rt2x00mmio_register_write(rt2x00dev, TX_DTX_IDX2, 0);
-
-	entry_priv = rt2x00dev->tx[3].entries[0].priv_data;
 	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR3,
 				  entry_priv->desc_dma);
 	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT3,
-				  rt2x00dev->tx[3].limit);
+				  rt2x00dev->tx[0].limit);
 	rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX3, 0);
 	rt2x00mmio_register_write(rt2x00dev, TX_DTX_IDX3, 0);
+
+	entry_priv = rt2x00dev->tx[1].entries[0].priv_data;
+	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR2,
+				  entry_priv->desc_dma);
+	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT2,
+				  rt2x00dev->tx[1].limit);
+	rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX2, 0);
+	rt2x00mmio_register_write(rt2x00dev, TX_DTX_IDX2, 0);
+
+	entry_priv = rt2x00dev->tx[2].entries[0].priv_data;
+	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR0,
+				  entry_priv->desc_dma);
+	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT0,
+				  rt2x00dev->tx[2].limit);
+	rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX0, 0);
+	rt2x00mmio_register_write(rt2x00dev, TX_DTX_IDX0, 0);
+
+	entry_priv = rt2x00dev->tx[3].entries[0].priv_data;
+	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR1,
+				  entry_priv->desc_dma);
+	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT1,
+				  rt2x00dev->tx[3].limit);
+	rt2x00mmio_register_write(rt2x00dev, TX_CTX_IDX1, 0);
+	rt2x00mmio_register_write(rt2x00dev, TX_DTX_IDX1, 0);
 
 	rt2x00mmio_register_write(rt2x00dev, TX_BASE_PTR4, 0);
 	rt2x00mmio_register_write(rt2x00dev, TX_MAX_CNT4, 0);

@@ -28,6 +28,7 @@
 #include <linux/average.h>
 #include <linux/usb.h>
 #include <linux/clk.h>
+#include <linux/pinctrl/consumer.h>
 
 #include <net/mac80211.h>
 
@@ -1013,6 +1014,11 @@ struct rt2x00_dev {
 
 	/* Clock for System On Chip devices. */
 	struct clk *clk;
+
+	/* pinctrl and states for System On Chip devices with PA/LNA. */
+	struct pinctrl *pinctrl;
+	struct pinctrl_state *pins_default;
+	struct pinctrl_state *pins_pa_gpio;
 
 	struct usb_anchor anchor[];
 };

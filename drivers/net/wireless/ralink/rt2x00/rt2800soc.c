@@ -27,6 +27,12 @@
 #include "rt2800lib.h"
 #include "rt2800mmio.h"
 
+/* Needed to probe CHIP_VER register on MT7620 */
+#ifdef CONFIG_SOC_MT7620
+#include <asm/mach-ralink/ralink_regs.h>
+#include <asm/mach-ralink/mt7620.h>
+#endif
+
 /* Allow hardware encryption to be disabled. */
 static bool modparam_nohwcrypt;
 module_param_named(nohwcrypt, modparam_nohwcrypt, bool, 0444);
@@ -97,6 +103,12 @@ static int rt2800soc_read_eeprom(struct rt2x00_dev *rt2x00dev)
 	if (!rt2800_read_eeprom_nvmem(rt2x00dev))
 		return 0;
 
+	if (!rt2800_read_eeprom_file(rt2x00dev))
+		return 0;
+
+	if (!rt2800_read_eeprom_data(rt2x00dev))
+		return 0;
+
 	base_addr = ioremap(0x1F040000, EEPROM_SIZE);
 	if (!base_addr)
 		return -ENOMEM;
@@ -153,6 +165,27 @@ static int rt2800soc_resume(struct platform_device *pdev)
 }
 #endif /* CONFIG_PM */
 
+#ifdef CONFIG_SOC_MT7620
+static int rt2800soc_get_chippkg(void)
+{
+	return mt7620_get_pkg();
+}
+
+static int rt2800soc_get_chipver(void)
+{
+	return mt7620_get_chipver();
+}
+
+static int rt2800soc_get_chipeco(void)
+{
+	return mt7620_get_eco();
+}
+#else
+static int rt2800soc_get_chippkg(void) { return 0; }
+static int rt2800soc_get_chipver(void) { return 0; }
+static int rt2800soc_get_chipeco(void) { return 0; }
+#endif
+
 static const struct ieee80211_ops rt2800soc_mac80211_ops = {
 	.add_chanctx = ieee80211_emulate_add_chanctx,
 	.remove_chanctx = ieee80211_emulate_remove_chanctx,
@@ -200,6 +233,9 @@ static const struct rt2800_ops rt2800soc_rt2800_ops = {
 	.drv_init_registers	= rt2800mmio_init_registers,
 	.drv_get_txwi		= rt2800mmio_get_txwi,
 	.drv_get_dma_done	= rt2800mmio_get_dma_done,
+	.hw_get_chippkg		= rt2800soc_get_chippkg,
+	.hw_get_chipver		= rt2800soc_get_chipver,
+	.hw_get_chipeco		= rt2800soc_get_chipeco,
 };
 
 static const struct rt2x00lib_ops rt2800soc_rt2x00_ops = {
@@ -313,6 +349,21 @@ static int rt2x00soc_probe(struct platform_device *pdev, const struct rt2x00_ops
 	retval = rt2x00lib_probe_dev(rt2x00dev);
 	if (retval)
 		goto exit_free_device;
+
+	rt2x00dev->pinctrl = devm_pinctrl_get(&pdev->dev);
+	if (IS_ERR(rt2x00dev->pinctrl)) {
+		rt2x00dev->pinctrl = NULL;
+		rt2x00dev->pins_default = NULL;
+		rt2x00dev->pins_pa_gpio = NULL;
+	} else {
+		rt2x00dev->pins_default = pinctrl_lookup_state(rt2x00dev->pinctrl, "default");
+		if (IS_ERR(rt2x00dev->pins_default))
+			rt2x00dev->pins_default = NULL;
+
+		rt2x00dev->pins_pa_gpio = pinctrl_lookup_state(rt2x00dev->pinctrl, "pa_gpio");
+		if (IS_ERR(rt2x00dev->pins_pa_gpio))
+			rt2x00dev->pins_pa_gpio = NULL;
+	}
 
 	return 0;
 

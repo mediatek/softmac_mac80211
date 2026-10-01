@@ -48,8 +48,13 @@ TRACE_EVENT(ath11k_htt_pktlog,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ar->ab->dev));
+		__assign_str(driver, dev_driver_string(ar->ab->dev));
+#endif
 		__entry->buf_len = buf_len;
 		__entry->pktlog_checksum = pktlog_checksum;
 		memcpy(__get_dynamic_array(pktlog), buf, buf_len);
@@ -77,8 +82,13 @@ TRACE_EVENT(ath11k_htt_ppdu_stats,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ar->ab->dev));
+		__assign_str(driver, dev_driver_string(ar->ab->dev));
+#endif
 		__entry->len = len;
 		memcpy(__get_dynamic_array(ppdu), data, len);
 	),
@@ -105,8 +115,13 @@ TRACE_EVENT(ath11k_htt_rxdesc,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ar->ab->dev));
+		__assign_str(driver, dev_driver_string(ar->ab->dev));
+#endif
 		__entry->len = len;
 		__entry->log_type = log_type;
 		memcpy(__get_dynamic_array(rxdesc), data, len);
@@ -130,8 +145,13 @@ DECLARE_EVENT_CLASS(ath11k_log_event,
 		__vstring(msg, vaf->fmt, vaf->va)
 	),
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ab->dev));
+		__assign_str(driver, dev_driver_string(ab->dev));
+#endif
 		__assign_vstr(msg, vaf->fmt, vaf->va);
 	),
 	TP_printk(
@@ -171,8 +191,13 @@ TRACE_EVENT(ath11k_wmi_cmd,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ab->dev));
+		__assign_str(driver, dev_driver_string(ab->dev));
+#endif
 		__entry->id = id;
 		__entry->buf_len = buf_len;
 		memcpy(__get_dynamic_array(buf), buf, buf_len);
@@ -201,8 +226,13 @@ TRACE_EVENT(ath11k_wmi_event,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ab->dev));
+		__assign_str(driver, dev_driver_string(ab->dev));
+#endif
 		__entry->id = id;
 		__entry->buf_len = buf_len;
 		memcpy(__get_dynamic_array(buf), buf, buf_len);
@@ -230,8 +260,13 @@ TRACE_EVENT(ath11k_log_dbg,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ab->dev));
+		__assign_str(driver, dev_driver_string(ab->dev));
+#endif
 		__entry->level = level;
 		WARN_ON_ONCE(vsnprintf(__get_dynamic_array(msg),
 				       ATH11K_MSG_MAX, vaf->fmt,
@@ -262,10 +297,17 @@ TRACE_EVENT(ath11k_log_dbg_dump,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
 		__assign_str(msg);
 		__assign_str(prefix);
+#else
+		__assign_str(device, dev_name(ab->dev));
+		__assign_str(driver, dev_driver_string(ab->dev));
+		__assign_str(msg, msg);
+		__assign_str(prefix, prefix);
+#endif
 		__entry->buf_len = buf_len;
 		memcpy(__get_dynamic_array(buf), buf, buf_len);
 	),
@@ -292,8 +334,13 @@ TRACE_EVENT(ath11k_wmi_diag,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(device);
 		__assign_str(driver);
+#else
+		__assign_str(device, dev_name(ab->dev));
+		__assign_str(driver, dev_driver_string(ab->dev));
+#endif
 		__entry->len = len;
 		memcpy(__get_dynamic_array(data), data, len);
 	),
@@ -318,8 +365,14 @@ TRACE_EVENT(ath11k_ps_timekeeper,
 			 __field(u32, peer_ps_timestamp)
 	),
 
-	TP_fast_assign(__assign_str(device);
+	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
+		       __assign_str(device);
 		       __assign_str(driver);
+#else
+		       __assign_str(device, dev_name(ar->ab->dev));
+		       __assign_str(driver, dev_driver_string(ar->ab->dev));
+#endif
 		       memcpy(__get_dynamic_array(peer_addr), peer_addr,
 			      ETH_ALEN);
 		       __entry->peer_ps_state = peer_ps_state;

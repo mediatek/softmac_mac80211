@@ -54,6 +54,9 @@ struct carl9170_debugfs_fops {
 	char *(*read)(struct ar9170 *ar, char *buf, size_t bufsize,
 		      ssize_t *len);
 	ssize_t (*write)(struct ar9170 *aru, const char *buf, size_t size);
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	const struct file_operations fops;
+#endif
 
 	enum carl9170_device_state req_dev_state;
 };
@@ -61,7 +64,11 @@ struct carl9170_debugfs_fops {
 static ssize_t carl9170_debugfs_read(struct file *file, char __user *userbuf,
 				     size_t count, loff_t *ppos)
 {
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct carl9170_debugfs_fops *dfops;
+#else
 	const struct carl9170_debugfs_fops *dfops;
+#endif
 	struct ar9170 *ar;
 	char *buf = NULL, *res_buf = NULL;
 	ssize_t ret = 0;
@@ -74,7 +81,12 @@ static ssize_t carl9170_debugfs_read(struct file *file, char __user *userbuf,
 
 	if (!ar)
 		return -ENODEV;
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	dfops = container_of(debugfs_real_fops(file),
+			     struct carl9170_debugfs_fops, fops);
+#else
 	dfops = debugfs_get_aux(file);
+#endif
 
 	if (!dfops->read)
 		return -ENOSYS;
@@ -111,7 +123,11 @@ out_free:
 static ssize_t carl9170_debugfs_write(struct file *file,
 	const char __user *userbuf, size_t count, loff_t *ppos)
 {
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct carl9170_debugfs_fops *dfops;
+#else
 	const struct carl9170_debugfs_fops *dfops;
+#endif
 	struct ar9170 *ar;
 	char *buf = NULL;
 	int err = 0;
@@ -126,7 +142,12 @@ static ssize_t carl9170_debugfs_write(struct file *file,
 
 	if (!ar)
 		return -ENODEV;
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	dfops = container_of(debugfs_real_fops(file),
+			     struct carl9170_debugfs_fops, fops);
+#else
 	dfops = debugfs_get_aux(file);
+#endif
 
 	if (!dfops->write)
 		return -ENOSYS;
@@ -162,11 +183,30 @@ out_free:
 	return err;
 }
 
+#if LINUX_VERSION_IS_GEQ(6,14,0)
 static struct debugfs_short_fops debugfs_fops = {
 	.read	= carl9170_debugfs_read,
 	.write	= carl9170_debugfs_write,
 };
+#endif
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+#define __DEBUGFS_DECLARE_FILE(name, _read, _write, _read_bufsize,	\
+			       _attr, _dstate)				\
+static const struct carl9170_debugfs_fops carl_debugfs_##name ##_ops = {\
+	.read_bufsize = _read_bufsize,					\
+	.read = _read,							\
+	.write = _write,						\
+	.attr = _attr,							\
+	.req_dev_state = _dstate,					\
+	.fops = {							\
+		.open	= simple_open,					\
+		.read	= carl9170_debugfs_read,			\
+		.write	= carl9170_debugfs_write,			\
+		.owner	= THIS_MODULE					\
+	},								\
+}
+#else
 #define __DEBUGFS_DECLARE_FILE(name, _read, _write, _read_bufsize,	\
 			       _attr, _dstate)				\
 static const struct carl9170_debugfs_fops carl_debugfs_##name ##_ops = {\
@@ -176,6 +216,7 @@ static const struct carl9170_debugfs_fops carl_debugfs_##name ##_ops = {\
 	.attr = _attr,							\
 	.req_dev_state = _dstate,					\
 }
+#endif
 
 #define DEBUGFS_DECLARE_FILE(name, _read, _write, _read_bufsize, _attr)	\
 	__DEBUGFS_DECLARE_FILE(name, _read, _write, _read_bufsize,	\
@@ -812,10 +853,17 @@ void carl9170_debugfs_register(struct ar9170 *ar)
 	ar->debug_dir = debugfs_create_dir(KBUILD_MODNAME,
 		ar->hw->wiphy->debugfsdir);
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+#define DEBUGFS_ADD(name)						\
+	debugfs_create_file(#name, carl_debugfs_##name ##_ops.attr,	\
+			    ar->debug_dir, ar,				\
+			    &carl_debugfs_##name ## _ops.fops)
+#else
 #define DEBUGFS_ADD(name)						\
 	debugfs_create_file_aux(#name, carl_debugfs_##name ##_ops.attr,	\
 			    ar->debug_dir, ar, &carl_debugfs_##name ## _ops, \
 			    &debugfs_fops)
+#endif
 
 	DEBUGFS_ADD(usb_tx_anch_urbs);
 	DEBUGFS_ADD(usb_rx_pool_urbs);

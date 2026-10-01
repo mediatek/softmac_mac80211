@@ -31,7 +31,11 @@ TRACE_EVENT(brcms_txdesc,
 		__dynamic_array(u8, txh, txh_len)
 	),
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(dev);
+#else
+		__assign_str(dev, dev_name(dev));
+#endif
 		memcpy(__get_dynamic_array(txh), txh, txh_len);
 	),
 	TP_printk("[%s] txdesc", __get_str(dev))
@@ -54,7 +58,11 @@ TRACE_EVENT(brcms_txstatus,
 		__field(u16, ackphyrxsh)
 	),
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(dev);
+#else
+		__assign_str(dev, dev_name(dev));
+#endif
 		__entry->framelen = framelen;
 		__entry->frameid = frameid;
 		__entry->status = status;
@@ -85,7 +93,11 @@ TRACE_EVENT(brcms_ampdu_session,
 		__field(u16, dma_len)
 	),
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(dev);
+#else
+		__assign_str(dev, dev_name(dev));
+#endif
 		__entry->max_ampdu_len = max_ampdu_len;
 		__entry->max_ampdu_frames = max_ampdu_frames;
 		__entry->ampdu_len = ampdu_len;

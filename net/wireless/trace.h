@@ -488,7 +488,11 @@ TRACE_EVENT(rdev_add_virtual_intf,
 	),
 	TP_fast_assign(
 		WIPHY_ASSIGN;
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(vir_intf_name);
+#else
+		__assign_str(vir_intf_name, name ? name : "<noname>");
+#endif
 		__entry->type = type;
 	),
 	TP_printk(WIPHY_PR_FMT ", virtual intf name: %s, type: %d",

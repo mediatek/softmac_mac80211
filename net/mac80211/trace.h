@@ -31,9 +31,15 @@
 #define VIF_ENTRY	__field(enum nl80211_iftype, vif_type) __field(void *, sdata)	\
 			__field(bool, p2p)						\
 			__string(vif_name, sdata->name)
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 #define VIF_ASSIGN	__entry->vif_type = sdata->vif.type; __entry->sdata = sdata;	\
 			__entry->p2p = sdata->vif.p2p;					\
 			__assign_str(vif_name)
+#else
+#define VIF_ASSIGN	__entry->vif_type = sdata->vif.type; __entry->sdata = sdata;	\
+			__entry->p2p = sdata->vif.p2p;					\
+			__assign_str(vif_name, sdata->name)
+#endif
 #define VIF_PR_FMT	" vif:%s(%d%s)"
 #define VIF_PR_ARG	__get_str(vif_name), __entry->vif_type, __entry->p2p ? "/p2p" : ""
 

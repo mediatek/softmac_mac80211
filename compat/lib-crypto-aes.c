@@ -542,7 +542,7 @@ static void __init aes_fips_test(void)
 	memzero_explicit(&key, sizeof(key));
 }
 
-#if IS_ENABLED(CONFIG_CRYPTO_LIB_AES_CBC_MACS)
+#if IS_ENABLED(CPTCFG_BACKPORTED_BPAUTO_CRYPTO_LIB_AES_CBC_MACS)
 
 #ifndef aes_cbcmac_blocks_arch
 static bool aes_cbcmac_blocks_arch(u8 h[AES_BLOCK_SIZE],
@@ -737,23 +737,6 @@ void aes_cbcmac_final(struct aes_cbcmac_ctx *ctx, u8 out[AES_BLOCK_SIZE])
 }
 EXPORT_SYMBOL_NS_GPL(aes_cbcmac_final, "CRYPTO_INTERNAL");
 
-/* FIPS cryptographic algorithm self-test for AES-CMAC */
-static void __init aes_cmac_fips_test(void)
-{
-	struct aes_cmac_key key __cleanup(aes_cmac_zeroize_key);
-	u8 mac[AES_BLOCK_SIZE];
-
-	if (aes_cmac_preparekey(&key, fips_test_key, sizeof(fips_test_key)) !=
-	    0)
-		panic("aes: CMAC FIPS self-test failed (preparekey)\n");
-	aes_cmac(&key, fips_test_data, sizeof(fips_test_data), mac);
-	if (memcmp(fips_test_aes_cmac_value, mac, sizeof(mac)) != 0)
-		panic("aes: CMAC FIPS self-test failed (wrong MAC)\n");
-}
-#else /* CONFIG_CRYPTO_LIB_AES_CBC_MACS */
-static inline void aes_cmac_fips_test(void)
-{
-}
 #endif /* !CONFIG_CRYPTO_LIB_AES_CBC_MACS */
 
 #if IS_ENABLED(CONFIG_CRYPTO_LIB_AES_ECB)
@@ -2116,31 +2099,6 @@ static inline void aes_ccm_fips_test(void)
 {
 }
 #endif /* !CONFIG_CRYPTO_LIB_AES_CCM */
-
-static int __init aes_mod_init(void)
-{
-#ifdef aes_mod_init_arch
-	aes_mod_init_arch();
-#endif
-	if (fips_enabled) {
-		aes_fips_test();
-		aes_cmac_fips_test();
-		aes_ecb_fips_test();
-		aes_cbc_fips_test();
-		aes_cbc_cts_fips_test();
-		aes_ctr_fips_test();
-		aes_xts_fips_test();
-		aes_gcm_fips_test();
-		aes_ccm_fips_test();
-	}
-	return 0;
-}
-subsys_initcall(aes_mod_init);
-
-static void __exit aes_mod_exit(void)
-{
-}
-module_exit(aes_mod_exit);
 
 MODULE_DESCRIPTION("AES block cipher");
 MODULE_AUTHOR("Ard Biesheuvel <ard.biesheuvel@linaro.org>");

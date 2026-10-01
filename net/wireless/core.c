@@ -161,9 +161,17 @@ static int cfg80211_switch_wdev_netns(struct wireless_dev *wdev,
 	if (!wdev->netdev)
 		return 0;
 
+#if LINUX_VERSION_IS_GEQ(6,15,0)
 	wdev->netdev->netns_immutable = false;
+#elif LINUX_VERSION_IS_GEQ(6,12,0)
+	wdev->netdev->netns_local = false;
+#endif
 	err = dev_change_net_namespace(wdev->netdev, net, "wlan%d");
+#if LINUX_VERSION_IS_GEQ(6,15,0)
 	wdev->netdev->netns_immutable = true;
+#elif LINUX_VERSION_IS_GEQ(6,12,0)
+	wdev->netdev->netns_local = true;
+#endif
 
 	return err;
 }
@@ -1801,7 +1809,11 @@ static int cfg80211_netdev_notifier_call(struct notifier_block *nb,
 		SET_NETDEV_DEVTYPE(dev, &wiphy_type);
 		wdev->netdev = dev;
 		/* can only change netns with wiphy */
+#if LINUX_VERSION_IS_GEQ(6,15,0)
 		dev->netns_immutable = true;
+#elif LINUX_VERSION_IS_GEQ(6,12,0)
+		dev->netns_local = true;
+#endif
 
 		cfg80211_init_wdev(wdev);
 		break;

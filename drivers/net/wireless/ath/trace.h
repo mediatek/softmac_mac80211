@@ -44,8 +44,13 @@ TRACE_EVENT(ath_log,
 	    ),
 
 	    TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		    __assign_str(device);
 		    __assign_str(driver);
+#else
+		    __assign_str(device, wiphy_name(wiphy));
+		    __assign_str(driver, KBUILD_MODNAME);
+#endif
 		    __assign_vstr(msg, vaf->fmt, vaf->va);
 	    ),
 

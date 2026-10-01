@@ -17,6 +17,7 @@
 #include <net/netlink.h>
 #include <net/sock.h>
 
+#if LINUX_VERSION_IS_LESS(5,2,0)
 static const struct genl_family *find_family_real_ops(const struct genl_ops **ops)
 {
 	const struct genl_family *family;
@@ -249,3 +250,63 @@ int backport_genlmsg_multicast_allns(const struct genl_family *family,
 	return genlmsg_mcast(skb, portid, group);
 }
 EXPORT_SYMBOL_GPL(backport_genlmsg_multicast_allns);
+#endif /* LINUX_VERSION_IS_LESS(5,2,0) */
+
+#if LINUX_VERSION_IN_RANGE(5,15,0,5,15,169) || \
+    LINUX_VERSION_IN_RANGE(6,1,0,6,1,115) || \
+    LINUX_VERSION_IN_RANGE(6,6,0,6,6,58)
+static int genlmsg_mcast(struct sk_buff *skb, u32 portid, unsigned long group)
+{
+	struct sk_buff *tmp;
+	struct net *net, *prev = NULL;
+	bool delivered = false;
+	int err;
+
+	rcu_read_lock();
+	for_each_net_rcu(net) {
+		if (prev) {
+			tmp = skb_clone(skb, GFP_ATOMIC);
+			if (!tmp) {
+				err = -ENOMEM;
+				goto error;
+			}
+			err = nlmsg_multicast(prev->genl_sock, tmp,
+					      portid, group, GFP_ATOMIC);
+			if (!err)
+				delivered = true;
+			else if (err != -ESRCH)
+				goto error;
+		}
+
+		prev = net;
+	}
+	err = nlmsg_multicast(prev->genl_sock, skb, portid, group, GFP_ATOMIC);
+
+	rcu_read_unlock();
+
+	if (!err)
+		delivered = true;
+	else if (err != -ESRCH)
+		return err;
+	return delivered ? 0 : -ESRCH;
+ error:
+	rcu_read_unlock();
+
+	kfree_skb(skb);
+	return err;
+}
+
+int backport_genlmsg_multicast_allns(const struct genl_family *family,
+				     struct sk_buff *skb, u32 portid,
+				     unsigned int group)
+{
+	if (WARN_ON_ONCE(group >= family->n_mcgrps))
+		return -EINVAL;
+
+	group = family->mcgrp_offset + group;
+	return genlmsg_mcast(skb, portid, group);
+}
+EXPORT_SYMBOL_GPL(backport_genlmsg_multicast_allns);
+#endif /* LINUX_VERSION_IN_RANGE(5,15,0,5,15,169) ||
+	  LINUX_VERSION_IN_RANGE(6,1,0,6,1,115) ||
+	  LINUX_VERSION_IN_RANGE(6,6,0,6,6,58) */

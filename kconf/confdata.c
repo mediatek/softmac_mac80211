@@ -1170,6 +1170,8 @@ bool conf_set_all_new_symbols(enum conf_def_mode mode)
 	}
 	bool has_changed = false;
 
+	sym_clear_all_valid();
+
 	for_all_symbols(i, sym) {
 		if (sym_has_value(sym) || (sym->flags & SYMBOL_VALID))
 			continue;
@@ -1212,8 +1214,6 @@ bool conf_set_all_new_symbols(enum conf_def_mode mode)
 		}
 
 	}
-
-	sym_clear_all_valid();
 
 	/*
 	 * We have different type of choice blocks.

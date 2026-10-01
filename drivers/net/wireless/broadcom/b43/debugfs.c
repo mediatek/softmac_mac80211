@@ -30,6 +30,9 @@ static struct dentry *rootdir;
 struct b43_debugfs_fops {
 	ssize_t (*read)(struct b43_wldev *dev, char *buf, size_t bufsize);
 	int (*write)(struct b43_wldev *dev, const char *buf, size_t count);
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct file_operations fops;
+#endif
 	/* Offset of struct b43_dfs_file in struct b43_dfsentry */
 	size_t file_struct_offset;
 };
@@ -490,7 +493,11 @@ static ssize_t b43_debugfs_read(struct file *file, char __user *userbuf,
 				size_t count, loff_t *ppos)
 {
 	struct b43_wldev *dev;
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct b43_debugfs_fops *dfops;
+#else
 	const struct b43_debugfs_fops *dfops;
+#endif
 	struct b43_dfs_file *dfile;
 	ssize_t ret;
 	char *buf;
@@ -509,7 +516,12 @@ static ssize_t b43_debugfs_read(struct file *file, char __user *userbuf,
 		goto out_unlock;
 	}
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	dfops = container_of(debugfs_real_fops(file),
+			     struct b43_debugfs_fops, fops);
+#else
 	dfops = debugfs_get_aux(file);
+#endif
 	if (!dfops->read) {
 		err = -ENOSYS;
 		goto out_unlock;
@@ -551,7 +563,11 @@ static ssize_t b43_debugfs_write(struct file *file,
 				 size_t count, loff_t *ppos)
 {
 	struct b43_wldev *dev;
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct b43_debugfs_fops *dfops;
+#else
 	const struct b43_debugfs_fops *dfops;
+#endif
 	char *buf;
 	int err = 0;
 
@@ -569,7 +585,12 @@ static ssize_t b43_debugfs_write(struct file *file,
 		goto out_unlock;
 	}
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	dfops = container_of(debugfs_real_fops(file),
+			     struct b43_debugfs_fops, fops);
+#else
 	dfops = debugfs_get_aux(file);
+#endif
 	if (!dfops->write) {
 		err = -ENOSYS;
 		goto out_unlock;
@@ -597,12 +618,29 @@ out_unlock:
 }
 
 
+#if LINUX_VERSION_IS_GEQ(6,14,0)
 static struct debugfs_short_fops debugfs_ops = {
 	.read	= b43_debugfs_read,
 	.write	= b43_debugfs_write,
 	.llseek = generic_file_llseek,
 };
+#endif
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+#define B43_DEBUGFS_FOPS(name, _read, _write)			\
+	static struct b43_debugfs_fops fops_##name = {		\
+		.read	= _read,				\
+		.write	= _write,				\
+		.fops	= {					\
+			.open	= simple_open,			\
+			.read	= b43_debugfs_read,		\
+			.write	= b43_debugfs_write,		\
+			.llseek = generic_file_llseek,		\
+		},						\
+		.file_struct_offset = offsetof(struct b43_dfsentry, \
+					       file_##name),	\
+	}
+#else
 #define B43_DEBUGFS_FOPS(name, _read, _write)			\
 	static struct b43_debugfs_fops fops_##name = {		\
 		.read	= _read,				\
@@ -610,6 +648,7 @@ static struct debugfs_short_fops debugfs_ops = {
 		.file_struct_offset = offsetof(struct b43_dfsentry, \
 					       file_##name),	\
 	}
+#endif
 
 B43_DEBUGFS_FOPS(shm16read, shm16read__read_file, shm16read__write_file);
 B43_DEBUGFS_FOPS(shm16write, NULL, shm16write__write_file);
@@ -695,12 +734,21 @@ void b43_debugfs_add_device(struct b43_wldev *dev)
 	e->shm32read_routing_next = 0xFFFFFFFF; /* invalid routing */
 	e->shm32read_addr_next = 0xFFFFFFFF; /* invalid address */
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+#define ADD_FILE(name, mode)	\
+	do {							\
+		debugfs_create_file(__stringify(name),		\
+				mode, e->subdir, dev,		\
+				&fops_##name.fops);		\
+	} while (0)
+#else
 #define ADD_FILE(name, mode)	\
 	do {							\
 		debugfs_create_file_aux(__stringify(name),	\
 				mode, e->subdir, dev,		\
 				&fops_##name, &debugfs_ops);	\
 	} while (0)
+#endif
 
 
 	ADD_FILE(shm16read, 0600);

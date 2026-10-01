@@ -41,7 +41,11 @@ TRACE_EVENT(brcmf_err,
 		__vstring(msg, vaf->fmt, vaf->va)
 	),
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(func);
+#else
+		__assign_str(func, func);
+#endif
 		__assign_vstr(msg, vaf->fmt, vaf->va);
 	),
 	TP_printk("%s: %s", __get_str(func), __get_str(msg))
@@ -57,7 +61,11 @@ TRACE_EVENT(brcmf_dbg,
 	),
 	TP_fast_assign(
 		__entry->level = level;
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(func);
+#else
+		__assign_str(func, func);
+#endif
 		__assign_vstr(msg, vaf->fmt, vaf->va);
 	),
 	TP_printk("%s: %s", __get_str(func), __get_str(msg))

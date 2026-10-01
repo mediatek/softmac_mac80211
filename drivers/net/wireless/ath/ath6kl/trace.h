@@ -304,8 +304,13 @@ TRACE_EVENT(ath6kl_log_dbg_dump,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(msg);
 		__assign_str(prefix);
+#else
+		__assign_str(msg, msg);
+		__assign_str(prefix, prefix);
+#endif
 		__entry->buf_len = buf_len;
 		memcpy(__get_dynamic_array(buf), buf, buf_len);
 	),

@@ -102,7 +102,11 @@ TRACE_EVENT(qrtr_ns_message,
 	),
 
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(ctrl_pkt_str);
+#else
+		__assign_str(ctrl_pkt_str, ctrl_pkt_str);
+#endif
 		__entry->sq_node = sq_node;
 		__entry->sq_port = sq_port;
 	),

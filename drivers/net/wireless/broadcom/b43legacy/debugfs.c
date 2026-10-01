@@ -31,6 +31,9 @@ static struct dentry *rootdir;
 struct b43legacy_debugfs_fops {
 	ssize_t (*read)(struct b43legacy_wldev *dev, char *buf, size_t bufsize);
 	int (*write)(struct b43legacy_wldev *dev, const char *buf, size_t count);
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct file_operations fops;
+#endif
 	/* Offset of struct b43legacy_dfs_file in struct b43legacy_dfsentry */
 	size_t file_struct_offset;
 	/* Take wl->irq_lock before calling read/write? */
@@ -187,7 +190,11 @@ static ssize_t b43legacy_debugfs_read(struct file *file, char __user *userbuf,
 				size_t count, loff_t *ppos)
 {
 	struct b43legacy_wldev *dev;
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct b43legacy_debugfs_fops *dfops;
+#else
 	const struct b43legacy_debugfs_fops *dfops;
+#endif
 	struct b43legacy_dfs_file *dfile;
 	ssize_t ret;
 	char *buf;
@@ -206,7 +213,12 @@ static ssize_t b43legacy_debugfs_read(struct file *file, char __user *userbuf,
 		goto out_unlock;
 	}
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	dfops = container_of(debugfs_real_fops(file),
+			     struct b43legacy_debugfs_fops, fops);
+#else
 	dfops = debugfs_get_aux(file);
+#endif
 	if (!dfops->read) {
 		err = -ENOSYS;
 		goto out_unlock;
@@ -253,7 +265,11 @@ static ssize_t b43legacy_debugfs_write(struct file *file,
 				 size_t count, loff_t *ppos)
 {
 	struct b43legacy_wldev *dev;
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	struct b43legacy_debugfs_fops *dfops;
+#else
 	const struct b43legacy_debugfs_fops *dfops;
+#endif
 	char *buf;
 	int err = 0;
 
@@ -271,7 +287,12 @@ static ssize_t b43legacy_debugfs_write(struct file *file,
 		goto out_unlock;
 	}
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+	dfops = container_of(debugfs_real_fops(file),
+			     struct b43legacy_debugfs_fops, fops);
+#else
 	dfops = debugfs_get_aux(file);
+#endif
 	if (!dfops->write) {
 		err = -ENOSYS;
 		goto out_unlock;
@@ -303,12 +324,30 @@ out_unlock:
 	return err ? err : count;
 }
 
+#if LINUX_VERSION_IS_GEQ(6,14,0)
 static struct debugfs_short_fops debugfs_ops = {
 	.read	= b43legacy_debugfs_read,
 	.write	= b43legacy_debugfs_write,
 	.llseek = generic_file_llseek
 };
+#endif
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+#define B43legacy_DEBUGFS_FOPS(name, _read, _write, _take_irqlock)	\
+	static struct b43legacy_debugfs_fops fops_##name = {		\
+		.read	= _read,				\
+		.write	= _write,				\
+		.fops	= {					\
+			.open	= simple_open,				\
+			.read	= b43legacy_debugfs_read,		\
+			.write	= b43legacy_debugfs_write,		\
+			.llseek = generic_file_llseek,			\
+		},						\
+		.file_struct_offset = offsetof(struct b43legacy_dfsentry, \
+					       file_##name),	\
+		.take_irqlock	= _take_irqlock,		\
+	}
+#else
 #define B43legacy_DEBUGFS_FOPS(name, _read, _write, _take_irqlock)	\
 	static struct b43legacy_debugfs_fops fops_##name = {		\
 		.read	= _read,				\
@@ -317,6 +356,7 @@ static struct debugfs_short_fops debugfs_ops = {
 					       file_##name),	\
 		.take_irqlock	= _take_irqlock,		\
 	}
+#endif
 
 B43legacy_DEBUGFS_FOPS(tsf, tsf_read_file, tsf_write_file, 1);
 B43legacy_DEBUGFS_FOPS(ucode_regs, ucode_regs_read_file, NULL, 1);
@@ -378,12 +418,21 @@ void b43legacy_debugfs_add_device(struct b43legacy_wldev *dev)
 	snprintf(devdir, sizeof(devdir), "%s", wiphy_name(dev->wl->hw->wiphy));
 	e->subdir = debugfs_create_dir(devdir, rootdir);
 
+#if LINUX_VERSION_IS_LESS(6,14,0)
+#define ADD_FILE(name, mode)	\
+	do {							\
+		debugfs_create_file(__stringify(name), mode,	\
+				    e->subdir, dev,		\
+				    &fops_##name.fops);		\
+	} while (0)
+#else
 #define ADD_FILE(name, mode)	\
 	do {							\
 		debugfs_create_file_aux(__stringify(name), mode,	\
 				    e->subdir, dev,		\
 				    &fops_##name, &debugfs_ops);	\
 	} while (0)
+#endif
 
 
 	ADD_FILE(tsf, 0600);

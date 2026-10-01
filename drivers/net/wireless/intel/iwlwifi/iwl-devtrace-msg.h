@@ -57,7 +57,11 @@ TRACE_EVENT(iwlwifi_dbg,
 	),
 	TP_fast_assign(
 		__entry->level = level;
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(function);
+#else
+		__assign_str(function, function);
+#endif
 		__assign_vstr(msg, vaf->fmt, vaf->va);
 	),
 	TP_printk("%s", __get_str(msg))

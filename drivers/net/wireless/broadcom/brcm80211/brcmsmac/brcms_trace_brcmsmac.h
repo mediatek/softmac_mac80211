@@ -81,7 +81,11 @@ TRACE_EVENT(brcms_macintstatus,
 		__field(u32, mask)
 	),
 	TP_fast_assign(
+#if LINUX_VERSION_IS_GEQ(6,10,0)
 		__assign_str(dev);
+#else
+		__assign_str(dev, dev_name(dev));
+#endif
 		__entry->in_isr = in_isr;
 		__entry->macintstatus = macintstatus;
 		__entry->mask = mask;

@@ -192,4 +192,15 @@ int backport_genlmsg_multicast_allns(const struct genl_family *family,
 #define genlmsg_multicast_allns LINUX_BACKPORT(genlmsg_multicast_allns)
 #endif /* LINUX_VERSION_IS_LESS(5,2,0) */
 
+#if LINUX_VERSION_IN_RANGE(5,15,0,5,15,169) || \
+    LINUX_VERSION_IN_RANGE(6,1,0,6,1,115) || \
+    LINUX_VERSION_IN_RANGE(6,6,0,6,6,58)
+#define genlmsg_multicast_allns LINUX_BACKPORT(genlmsg_multicast_allns)
+int backport_genlmsg_multicast_allns(const struct genl_family *family,
+				     struct sk_buff *skb, u32 portid,
+				     unsigned int group);
+#endif /* LINUX_VERSION_IN_RANGE(5,15,0,5,15,169) ||
+	  LINUX_VERSION_IN_RANGE(6,1,0,6,1,115) ||
+	  LINUX_VERSION_IN_RANGE(6,6,0,6,6,58) */
+
 #endif /* __BACKPORT_NET_GENETLINK_H */

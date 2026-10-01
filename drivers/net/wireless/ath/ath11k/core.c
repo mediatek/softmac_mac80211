@@ -38,7 +38,7 @@ bool ath11k_ftm_mode;
 module_param_named(ftm_mode, ath11k_ftm_mode, bool, 0444);
 MODULE_PARM_DESC(ftm_mode, "Boots up in factory test mode");
 
-static const struct ath11k_hw_params ath11k_hw_params[] = {
+static struct ath11k_hw_params ath11k_hw_params[] = {
 	{
 		.hw_rev = ATH11K_HW_IPQ8074,
 		.name = "ipq8074 hw2.0",
@@ -174,8 +174,8 @@ static const struct ath11k_hw_params ath11k_hw_params[] = {
 		.supports_shadow_regs = false,
 		.idle_ps = false,
 		.supports_sta_ps = false,
-		.coldboot_cal_mm = true,
-		.coldboot_cal_ftm = true,
+		.coldboot_cal_mm = false,
+		.coldboot_cal_ftm = false,
 		.cbcal_restart_fw = true,
 		.fw_mem_mode = 0,
 		.num_vdevs = 16 + 1,
@@ -712,8 +712,8 @@ static const struct ath11k_hw_params ath11k_hw_params[] = {
 		.supports_suspend = false,
 		.hal_params = &ath11k_hw_hal_params_ipq5018,
 		.single_pdev_only = false,
-		.coldboot_cal_mm = true,
-		.coldboot_cal_ftm = true,
+		.coldboot_cal_mm = false,
+		.coldboot_cal_ftm = false,
 		.cbcal_restart_fw = true,
 		.fix_l1ss = true,
 		.supports_dynamic_smps_6ghz = false,
@@ -925,6 +925,68 @@ static const struct ath11k_hw_params ath11k_hw_params[] = {
 		.cfr_support = true,
 		.cfr_num_stream_bufs = 255,
 		.cfr_stream_buf_size = 8200,
+	},
+	{
+		.hw_rev = ATH11K_HW_QCN6122_HW10,
+		.name = "qcn6122 hw1.0",
+		.fw = {
+			.dir = "QCN6122/hw1.0",
+			.board_size = 256 * 1024,
+			.cal_offset = 128 * 1024,
+		},
+		.hal_params = &ath11k_hw_hal_params_ipq5018,
+		.max_radios = MAX_RADIOS_5018,
+		.bdf_addr = 0x4D200000,
+		.hw_ops = &ipq5018_ops,
+		.ring_mask = &ath11k_hw_ring_mask_qcn6122,
+		.hal_desc_sz = sizeof(struct hal_rx_desc_qcn9074),
+		.regs = &qcn6122_regs,
+		.qmi_service_ins_id = ATH11K_QMI_WLFW_SERVICE_INS_ID_V01_QCN6122,
+		.interface_modes = BIT(NL80211_IFTYPE_STATION) |
+					BIT(NL80211_IFTYPE_AP) |
+					BIT(NL80211_IFTYPE_MESH_POINT),
+		.spectral = {
+			.fft_sz = 2,
+			.fft_pad_sz = 0,
+			.summary_pad_sz = 16,
+			.fft_hdr_len = 24,
+			.max_fft_bins = 1024,
+		},
+		.credit_flow = false,
+		.supports_monitor = true,
+		.supports_shadow_regs = false,
+		.idle_ps = false,
+		.supports_suspend = false,
+		.host_ce_config = ath11k_host_ce_config_qcn9074,
+		.ce_count = CE_CNT_5018,
+		.target_ce_config = ath11k_target_ce_config_wlan_ipq5018,
+		.target_ce_count = TARGET_CE_CNT_5018,
+		.svc_to_ce_map = ath11k_target_service_to_ce_map_wlan_ipq5018,
+		.svc_to_ce_map_len = SVC_CE_MAP_LEN_5018,
+		.single_pdev_only = false,
+		.rxdma1_enable = true,
+		.num_rxdma_per_pdev = RXDMA_PER_PDEV_5018,
+		.rx_mac_buf_ring = false,
+		.vdev_start_delay = false,
+		.htt_peer_map_v2 = true,
+		.coldboot_cal_mm = false,
+		.coldboot_cal_ftm = false,
+		.cbcal_restart_fw = true,
+		.fix_l1ss = true,
+		.alloc_cacheable_memory = true,
+		.m3_fw_support = false,
+		.fixed_bdf_addr = true,
+		.fixed_mem_region = true,
+		.static_window_map = true,
+		.hybrid_bus_type = true,
+		.fw_mem_mode = 1,
+		.supports_sta_ps = false,
+		.dbr_debug_support = true,
+		.bios_sar_capa = NULL,
+		.fixed_fw_mem = false,
+		.support_off_channel_tx = false,
+		.tcl_ring_retry = true,
+		.tx_ring_size = DP_TCL_DATA_RING_SIZE,
 	},
 };
 
@@ -2617,7 +2679,8 @@ static void ath11k_core_reset(struct work_struct *work)
 static int ath11k_init_hw_params(struct ath11k_base *ab)
 {
 	const struct ath11k_hw_params *hw_params = NULL;
-	int i;
+	u32 fw_mem_mode;
+	int i, ret;
 
 	for (i = 0; i < ARRAY_SIZE(ath11k_hw_params); i++) {
 		hw_params = &ath11k_hw_params[i];
@@ -2633,7 +2696,31 @@ static int ath11k_init_hw_params(struct ath11k_base *ab)
 
 	ab->hw_params = *hw_params;
 
+	ret = of_property_read_u32(ab->dev->of_node,
+				   "qcom,ath11k-fw-memory-mode",
+				   &fw_mem_mode);
+	if (!ret) {
+		if (fw_mem_mode == 0) {
+			ab->hw_params.fw_mem_mode = 0;
+			ab->hw_params.num_vdevs = 16 + 1;
+			ab->hw_params.num_peers = 512;
+		}
+		else if (fw_mem_mode == 1) {
+			ab->hw_params.fw_mem_mode = 1;
+			ab->hw_params.num_vdevs = 8;
+			ab->hw_params.num_peers = 128;
+		} else if (fw_mem_mode == 2) {
+			ab->hw_params.fw_mem_mode = 2;
+			ab->hw_params.num_vdevs = 8;
+			ab->hw_params.num_peers = 128;
+			ab->hw_params.coldboot_cal_mm = false;
+			ab->hw_params.coldboot_cal_ftm = false;
+		} else
+			ath11k_info(ab, "Unsupported FW memory mode: %u\n", fw_mem_mode);
+	}
+
 	ath11k_info(ab, "%s\n", ab->hw_params.name);
+	ath11k_info(ab, "FW memory mode: %d\n", ab->hw_params.fw_mem_mode);
 
 	return 0;
 }

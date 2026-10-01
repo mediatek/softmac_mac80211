@@ -32,7 +32,7 @@ ath12k-$(CPTCFG_ATH12K_TRACING) += trace.o
 ath12k-$(CONFIG_PM) += wow.o
 ath12k-$(CPTCFG_ATH12K_COREDUMP) += coredump.o
 ath12k-$(CPTCFG_NL80211_TESTMODE) += testmode.o
-ath12k-$(CONFIG_THERMAL) += thermal.o
+ath12k-$(CPTCFG_ATH12K_THERMAL) += thermal.o
 
 # for tracing framework to find trace.h
 CFLAGS_trace.o := -I$(src)

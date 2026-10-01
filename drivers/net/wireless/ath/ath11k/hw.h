@@ -81,7 +81,12 @@
 #define ATH11K_M3_FILE			"m3.bin"
 #define ATH11K_REGDB_FILE_NAME		"regdb.bin"
 
-#define ATH11K_CE_OFFSET(ab)	(ab->mem_ce - ab->mem)
+#define ATH11K_REG_TYPE_MASK		GENMASK(31, 28)
+#define  ATH11K_REG_TYPE(x)		FIELD_PREP_CONST(ATH11K_REG_TYPE_MASK, x)
+#define  ATH11K_REG_TYPE_NORMAL		ATH11K_REG_TYPE(0)
+#define  ATH11K_REG_TYPE_DP		ATH11K_REG_TYPE(1)
+#define  ATH11K_REG_TYPE_CE		ATH11K_REG_TYPE(2)
+#define ATH11K_REG_OFFSET_MASK		GENMASK(27, 0)
 
 enum ath11k_hw_rate_cck {
 	ATH11K_HW_RATE_CCK_LP_11M = 0,
@@ -288,6 +293,7 @@ extern const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_ipq8074;
 extern const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_qca6390;
 extern const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_qcn9074;
 extern const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_wcn6750;
+extern const struct ath11k_hw_ring_mask ath11k_hw_ring_mask_qcn6122;
 
 extern const struct ce_ie_addr ath11k_ce_ie_addr_ipq8074;
 extern const struct ce_ie_addr ath11k_ce_ie_addr_ipq5018;
@@ -425,6 +431,7 @@ extern const struct ath11k_hw_regs qcn9074_regs;
 extern const struct ath11k_hw_regs wcn6855_regs;
 extern const struct ath11k_hw_regs wcn6750_regs;
 extern const struct ath11k_hw_regs ipq5018_regs;
+extern const struct ath11k_hw_regs qcn6122_regs;
 
 static inline const char *ath11k_bd_ie_type_str(enum ath11k_bd_ie_type type)
 {

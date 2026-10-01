@@ -4946,8 +4946,13 @@ ath11k_dp_rx_mon_merg_msdus(struct ath11k *ar,
 		}
 
 		prev_buf->next = NULL;
+		/* REMOVED: skb_trim(prev_buf, prev_buf->len - HAL_RX_FCS_LEN);
+		 * Older code trimmed HAL_RX_FCS_LEN here from prev_buf.
+		 * That only affects the last MSDU in the chain.
+		 * Length correction is now done in
+		 * ath11k_dp_rx_mon_deliver() for every delivered monitor skb.
+		 */
 
-		skb_trim(prev_buf, prev_buf->len - HAL_RX_FCS_LEN);
 	} else if (decap_format == DP_RX_DECAP_TYPE_NATIVE_WIFI) {
 		u8 qos_pkt = 0;
 
@@ -4973,10 +4978,13 @@ ath11k_dp_rx_mon_merg_msdus(struct ath11k *ar,
 			prev_buf = msdu;
 			msdu = msdu->next;
 		}
-		dest = skb_put(prev_buf, HAL_RX_FCS_LEN);
-		if (!dest)
-			goto err_merge_fail;
-
+		/* REMOVED: skb_put(prev_buf, HAL_RX_FCS_LEN)
+		 * Older code did skb_put(), effectively
+		 * extending the payload tail from merge stage for the last MSDU.
+		 * This is removed so merge path does not mutate capture length.
+		 * We keep a single length-fix point in monitor deliver path
+		 * (trim 8 bytes) right before mac80211 hand-off.
+		 */
 		ath11k_dbg(ab, ATH11K_DBG_DATA,
 			   "mpdu_buf %p mpdu_buf->len %u",
 			   prev_buf, prev_buf->len);
@@ -5101,12 +5109,27 @@ static int ath11k_dp_rx_mon_deliver(struct ath11k *ar, u32 mac_id,
 
 	header = mon_skb;
 
-	rxs->flag = 0;
+	/* Do not clear rxs->flag here to preserve FCS presence information
+	 * set during MSDU merge/trim.
+	 */
+	rxs->flag |= RX_FLAG_ONLY_MONITOR;
 
 	if (fcs_err)
-		rxs->flag = RX_FLAG_FAILED_FCS_CRC;
+		rxs->flag |= RX_FLAG_FAILED_FCS_CRC;
 
 	do {
+		/* HW monitor path on ipq60xx/ipq807x may append FCS + 4-byte tail.
+		 * Force trim 8 bytes right before delivery to mac80211 so
+		 * userspace capture length reflects actual 802.11 frame size.
+		 */
+		if (mon_skb->len > (FCS_LEN * 2)) {
+			u32 old_len = mon_skb->len;
+
+			skb_trim(mon_skb, old_len - (FCS_LEN * 2));
+			ath11k_warn(ar->ab, "%s:%d DELIVER trim8 len %u -> %u\n",
+				    __func__, __LINE__, old_len, mon_skb->len);
+		}
+
 		skb_next = mon_skb->next;
 		if (!skb_next)
 			rxs->flag &= ~RX_FLAG_AMSDU_MORE;

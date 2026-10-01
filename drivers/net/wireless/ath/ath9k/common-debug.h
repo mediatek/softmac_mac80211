@@ -69,6 +69,10 @@ void ath9k_cmn_debug_modal_eeprom(struct dentry *debugfs_phy,
 				  struct ath_hw *ah);
 void ath9k_cmn_debug_base_eeprom(struct dentry *debugfs_phy,
 				 struct ath_hw *ah);
+void ath9k_cmn_debug_eeprom(struct dentry *debugfs_phy,
+			    struct ath_hw *ah);
+void ath9k_cmn_debug_chanbw(struct dentry *debugfs_phy,
+			    struct ath_hw *ah);
 void ath9k_cmn_debug_stat_rx(struct ath_rx_stats *rxstats,
 			     struct ath_rx_status *rs);
 void ath9k_cmn_debug_recv(struct dentry *debugfs_phy,

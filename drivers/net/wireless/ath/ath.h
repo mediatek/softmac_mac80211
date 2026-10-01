@@ -151,6 +151,7 @@ struct ath_common {
 	int debug_mask;
 	enum ath_device_state state;
 	unsigned long op_flags;
+	u32 chan_bw;
 
 	struct ath_ani ani;
 
@@ -181,6 +182,7 @@ struct ath_common {
 	const struct ath_ops *ops;
 	const struct ath_bus_ops *bus_ops;
 	const struct ath_ps_ops *ps_ops;
+	const struct ieee80211_ops *ieee_ops;
 
 	bool btcoex_enabled;
 	bool disable_ani;
@@ -321,14 +323,7 @@ void _ath_dbg(struct ath_common *common, enum ATH_DEBUG dbg_mask,
 #endif /* CPTCFG_ATH_DEBUG */
 
 /** Returns string describing opmode, or NULL if unknown mode. */
-#ifdef CPTCFG_ATH_DEBUG
 const char *ath_opmode_to_string(enum nl80211_iftype opmode);
-#else
-static inline const char *ath_opmode_to_string(enum nl80211_iftype opmode)
-{
-	return "UNKNOWN";
-}
-#endif
 
 extern const char *ath_bus_type_strings[];
 static inline const char *ath_bus_type_to_string(enum ath_bus_type bustype)

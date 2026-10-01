@@ -36,7 +36,7 @@ void ath11k_regd_update_work(struct work_struct *work);
 void ath11k_regd_update_chan_list_work(struct work_struct *work);
 struct ieee80211_regdomain *
 ath11k_reg_build_regd(struct ath11k_base *ab,
-		      struct cur_regulatory_info *reg_info, bool intersect,
+		      struct cur_regulatory_info *reg_info,
 		      enum wmi_vdev_type vdev_type,
 		      enum ieee80211_ap_reg_power power_type);
 int ath11k_regd_update(struct ath11k *ar);

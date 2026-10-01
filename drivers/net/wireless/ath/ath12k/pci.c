@@ -251,6 +251,9 @@ static void ath12k_pci_enable_ltssm(struct ath12k_base *ab)
 	u32 val;
 	int i;
 
+	/* Prevent startup crash on BPI-Rx */
+	return;
+
 	val = ath12k_pci_read32(ab, PCIE_PCIE_PARF_LTSSM);
 
 	/* PCIE link seems very unstable after the Hot Reset*/

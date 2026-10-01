@@ -35,7 +35,7 @@ struct ath12k_thermal {
 	u32 throttle_state;
 };
 
-#if IS_REACHABLE(CONFIG_THERMAL)
+#if IS_REACHABLE(CPTCFG_ATH12K_THERMAL)
 int ath12k_thermal_register(struct ath12k_base *ab);
 void ath12k_thermal_unregister(struct ath12k_base *ab);
 void ath12k_thermal_event_temperature(struct ath12k *ar, int temperature);

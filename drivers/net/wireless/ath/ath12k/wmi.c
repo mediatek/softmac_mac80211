@@ -2895,6 +2895,9 @@ int ath12k_wmi_send_scan_chan_list_cmd(struct ath12k *ar,
 		max_chan_limit = (wmi->wmi_ab->max_msg_len[ar->pdev_idx] - len) /
 			sizeof(*chan_info);
 
+		if (max_chan_limit > WMI_MAX_NUM_CHAN_PER_WMI_CMD)
+			max_chan_limit = WMI_MAX_NUM_CHAN_PER_WMI_CMD;
+
 		num_send_chans = min3(arg->nallchans, max_chan_limit,
 				      ATH12K_WMI_MAX_NUM_CHAN_PER_CMD);
 

@@ -28,6 +28,11 @@
 
 #include "ath9k.h"
 
+#ifdef CONFIG_ATH79
+#include <asm/mach-ath79/ath79.h>
+#include <asm/mach-ath79/ar71xx_regs.h>
+#endif
+ 
 struct ath9k_eeprom_ctx {
 	struct completion complete;
 	struct ath_hw *ah;
@@ -47,7 +52,7 @@ int ath9k_modparam_nohwcrypt;
 module_param_named(nohwcrypt, ath9k_modparam_nohwcrypt, int, 0444);
 MODULE_PARM_DESC(nohwcrypt, "Disable hardware encryption");
 
-int ath9k_led_blink;
+int ath9k_led_blink = 1;
 module_param_named(blink, ath9k_led_blink, int, 0444);
 MODULE_PARM_DESC(blink, "Enable LED blink on activity");
 
@@ -241,6 +246,81 @@ static unsigned int ath9k_reg_rmw(void *hw_priv, u32 reg_offset, u32 set, u32 cl
 
 	return val;
 }
+
+#ifdef CONFIG_ATH79
+#define QCA955X_DDR_CTL_CONFIG          0x108
+#define QCA955X_DDR_CTL_CONFIG_ACT_WMAC BIT(23)
+
+static int ar913x_wmac_reset(void)
+{
+	ath79_device_reset_set(AR913X_RESET_AMBA2WMAC);
+	mdelay(10);
+
+	ath79_device_reset_clear(AR913X_RESET_AMBA2WMAC);
+	mdelay(10);
+
+	return 0;
+}
+
+static int ar933x_wmac_reset(void)
+{
+	int retries = 20;
+
+	ath79_device_reset_set(AR933X_RESET_WMAC);
+	ath79_device_reset_clear(AR933X_RESET_WMAC);
+
+	while (1) {
+		u32 bootstrap;
+
+		bootstrap = ath79_reset_rr(AR933X_RESET_REG_BOOTSTRAP);
+		if ((bootstrap & AR933X_BOOTSTRAP_EEPBUSY) == 0)
+			return 0;
+
+		if (retries-- == 0)
+			break;
+
+		udelay(10000);
+	}
+
+	pr_err("ar933x: WMAC reset timed out");
+	return -ETIMEDOUT;
+}
+
+static int qca955x_wmac_reset(void)
+{
+	int i;
+
+	/* Try to wait for WMAC DDR activity to stop */
+	for (i = 0; i < 10; i++) {
+		if (!(__raw_readl(ath79_ddr_base + QCA955X_DDR_CTL_CONFIG) &
+		    QCA955X_DDR_CTL_CONFIG_ACT_WMAC))
+			break;
+
+		udelay(10);
+	}
+
+	ath79_device_reset_set(QCA955X_RESET_RTC);
+	udelay(10);
+	ath79_device_reset_clear(QCA955X_RESET_RTC);
+	udelay(10);
+
+	return 0;
+}
+
+
+static int ar9330_get_soc_revision(void)
+{
+	if (ath79_soc_rev == 1)
+		return ath79_soc_rev;
+
+	return 0;
+}
+
+static int ath79_get_soc_revision(void)
+{
+	return ath79_soc_rev;
+}
+#endif
 
 /**************************/
 /*     Initialization     */
@@ -625,12 +705,53 @@ static int ath9k_of_init(struct ath_softc *sc)
 	struct ath_common *common = ath9k_hw_common(ah);
 	enum ath_bus_type bus_type = common->bus_ops->ath_bus_type;
 	char eeprom_name[100];
+	u32 mask;
 	int ret;
 
 	if (!of_device_is_available(np))
 		return 0;
 
 	ath_dbg(common, CONFIG, "parsing configuration from OF node\n");
+
+	if (!of_property_read_u32(np, "qca,gpio-mask", &mask))
+		ah->caps.gpio_mask = mask;
+
+	if (of_property_read_bool(np, "qca,tx-gain-buffalo"))
+		ah->config.tx_gain_buffalo = true;
+
+#ifdef CONFIG_ATH79
+	if (ah->hw_version.devid == AR5416_AR9100_DEVID) {
+		ah->external_reset = ar913x_wmac_reset;
+		ah->external_reset();
+	} else if (ah->hw_version.devid == AR9300_DEVID_AR9330) {
+		ah->get_mac_revision = ar9330_get_soc_revision;
+		u32 t = ath79_reset_rr(AR933X_RESET_REG_BOOTSTRAP);
+		ah->is_clk_25mhz = !(t & AR933X_BOOTSTRAP_REF_CLK_40);
+		ah->external_reset = ar933x_wmac_reset;
+		ah->external_reset();
+	} else if (ah->hw_version.devid == AR9300_DEVID_AR9340) {
+		ah->get_mac_revision = ath79_get_soc_revision;
+		u32 t = ath79_reset_rr(AR934X_RESET_REG_BOOTSTRAP);
+		ah->is_clk_25mhz = !(t & AR934X_BOOTSTRAP_REF_CLK_40);
+	} else if (ah->hw_version.devid == AR9300_DEVID_AR953X) {
+		ah->get_mac_revision = ath79_get_soc_revision;
+		/*
+		 * QCA953x only supports 25MHz refclk.
+		 * Some vendors have an invalid bootstrap option
+		 * set, which would break the WMAC here.
+		 */
+		ah->is_clk_25mhz = true;
+	} else if (ah->hw_version.devid == AR9300_DEVID_QCA955X) {
+		u32 t = ath79_reset_rr(QCA955X_RESET_REG_BOOTSTRAP);
+		ah->is_clk_25mhz = !(t & QCA955X_BOOTSTRAP_REF_CLK_40);
+		ah->external_reset = qca955x_wmac_reset;
+		ah->external_reset();
+	} else if (ah->hw_version.devid == AR9300_DEVID_QCA956X) {
+		ah->get_mac_revision = ath79_get_soc_revision;
+		u32 t = ath79_reset_rr(QCA956X_RESET_REG_BOOTSTRAP);
+		ah->is_clk_25mhz = !(t & QCA956X_BOOTSTRAP_REF_CLK_40);
+	}
+#endif
 
 	if (of_property_read_bool(np, "qca,no-eeprom")) {
 		/* ath9k-eeprom-<bus>-<id>.bin */
@@ -649,6 +770,17 @@ static int ath9k_of_init(struct ath_softc *sc)
 	ret = of_get_mac_address(np, common->macaddr);
 	if (ret == -EPROBE_DEFER)
 		return ret;
+
+	np = of_get_child_by_name(np, "led");
+	if (np && of_device_is_available(np)) {
+		u32 led_pin;
+
+		if (!of_property_read_u32(np, "led-sources", &led_pin))
+			ah->led_pin = led_pin;
+
+		ah->config.led_active_high = !of_property_read_bool(np, "led-active-low");
+		of_node_put(np);
+	}
 
 	return 0;
 }
@@ -690,6 +822,7 @@ static int ath9k_init_softc(u16 devid, struct ath_softc *sc,
 	if (!ath9k_is_chanctx_enabled())
 		sc->cur_chan->hw_queue_base = 0;
 
+	common->ieee_ops = &ath9k_ops;
 	common->ops = &ah->reg_ops;
 	common->bus_ops = bus_ops;
 	common->ps_ops = &ath9k_ps_ops;
@@ -835,6 +968,7 @@ static const struct ieee80211_iface_limit if_limits[] = {
 				 BIT(NL80211_IFTYPE_AP) },
 	{ .max = 1,	.types = BIT(NL80211_IFTYPE_P2P_CLIENT) |
 				 BIT(NL80211_IFTYPE_P2P_GO) },
+	{ .max = 1,	.types = BIT(NL80211_IFTYPE_ADHOC) },
 };
 
 #ifdef CPTCFG_ATH9K_CHANNEL_CONTEXT
@@ -915,6 +1049,7 @@ static void ath9k_set_hw_capab(struct ath_softc *sc, struct ieee80211_hw *hw)
 	ieee80211_hw_set(hw, HOST_BROADCAST_PS_BUFFERING);
 	ieee80211_hw_set(hw, SUPPORT_FAST_XMIT);
 	ieee80211_hw_set(hw, SUPPORTS_CLONED_SKBS);
+	ieee80211_hw_set(hw, MFP_CAPABLE);
 
 	if (ath9k_ps_enable)
 		ieee80211_hw_set(hw, SUPPORTS_PS);
@@ -926,9 +1061,6 @@ static void ath9k_set_hw_capab(struct ath_softc *sc, struct ieee80211_hw *hw)
 			hw->radiotap_mcs_details |=
 				IEEE80211_RADIOTAP_MCS_HAVE_STBC;
 	}
-
-	if (AR_SREV_9160_10_OR_LATER(sc->sc_ah) || ath9k_modparam_nohwcrypt)
-		ieee80211_hw_set(hw, MFP_CAPABLE);
 
 	hw->wiphy->features |= NL80211_FEATURE_ACTIVE_MONITOR |
 			       NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE |
@@ -1041,7 +1173,7 @@ int ath9k_init_device(u16 devid, struct ath_softc *sc,
 
 #ifdef CPTCFG_MAC80211_LEDS
 	/* must be initialized before ieee80211_register_hw */
-	sc->led_cdev.default_trigger = ieee80211_create_tpt_led_trigger(sc->hw,
+	sc->led_default_trigger = ieee80211_create_tpt_led_trigger(sc->hw,
 		IEEE80211_TPT_LEDTRIG_FL_RADIO, ath9k_tpt_blink,
 		ARRAY_SIZE(ath9k_tpt_blink));
 #endif
@@ -1131,25 +1263,25 @@ static int __init ath9k_init(void)
 {
 	int error;
 
-	error = ath_pci_init();
+	error = ath_ahb_init();
 	if (error < 0) {
-		pr_err("No PCI devices found, driver not installed\n");
 		error = -ENODEV;
 		goto err_out;
 	}
 
-	error = ath_ahb_init();
+	error = ath_pci_init();
 	if (error < 0) {
+		pr_err("No PCI devices found, driver not installed\n");
 		error = -ENODEV;
-		goto err_pci_exit;
+		goto err_ahb_exit;
 	}
 
 	dmi_check_system(ath9k_quirks);
 
 	return 0;
 
- err_pci_exit:
-	ath_pci_exit();
+ err_ahb_exit:
+	ath_ahb_exit();
  err_out:
 	return error;
 }

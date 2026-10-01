@@ -2038,9 +2038,10 @@ static int ath11k_qmi_alloc_target_mem_chunk(struct ath11k_base *ab)
 
 static int ath11k_qmi_assign_target_mem_chunk(struct ath11k_base *ab)
 {
+	struct resource res = DEFINE_RES_NAMED(0, 0, NULL, IORESOURCE_UNSET);
 	struct device *dev = ab->dev;
-	struct resource res = {};
 	u32 host_ddr_sz;
+	u32 addr;
 	int i, idx, ret;
 
 	for (i = 0, idx = 0; i < ab->qmi.mem_seg_count; i++) {
@@ -2072,7 +2073,9 @@ static int ath11k_qmi_assign_target_mem_chunk(struct ath11k_base *ab)
 			idx++;
 			break;
 		case BDF_MEM_REGION_TYPE:
-			ab->qmi.target_mem[idx].paddr = ab->hw_params.bdf_addr;
+			if (of_property_read_u32(dev->of_node, "qcom,bdf-addr", &addr))
+				addr = ab->hw_params.bdf_addr;
+			ab->qmi.target_mem[idx].paddr = addr;
 			ab->qmi.target_mem[idx].iaddr = NULL;
 			ab->qmi.target_mem[idx].size = ab->qmi.target_mem[i].size;
 			ab->qmi.target_mem[idx].type = ab->qmi.target_mem[i].type;
@@ -2085,7 +2088,7 @@ static int ath11k_qmi_assign_target_mem_chunk(struct ath11k_base *ab)
 			}
 
 			if (ath11k_core_coldboot_cal_support(ab)) {
-				if (resource_size(&res)) {
+				if (res.flags != IORESOURCE_UNSET) {
 					ab->qmi.target_mem[idx].paddr =
 							res.start + host_ddr_sz;
 					ab->qmi.target_mem[idx].iaddr =
@@ -2094,14 +2097,27 @@ static int ath11k_qmi_assign_target_mem_chunk(struct ath11k_base *ab)
 					if (!ab->qmi.target_mem[idx].iaddr)
 						return -EIO;
 				} else {
-					ab->qmi.target_mem[idx].paddr =
-						ATH11K_QMI_CALDB_ADDRESS;
+					if (of_property_read_u32(dev->of_node, "qcom,caldb-addr", &addr))
+						addr = ATH11K_QMI_CALDB_ADDRESS;
+					ab->qmi.target_mem[idx].paddr = addr;
 					ab->qmi.target_mem[idx].iaddr = NULL;
 				}
 			} else {
 				ab->qmi.target_mem[idx].paddr = 0;
 				ab->qmi.target_mem[idx].iaddr = NULL;
 			}
+			ab->qmi.target_mem[idx].size = ab->qmi.target_mem[i].size;
+			ab->qmi.target_mem[idx].type = ab->qmi.target_mem[i].type;
+			idx++;
+			break;
+		case M3_DUMP_REGION_TYPE:
+			if (of_property_read_u32(dev->of_node, "qcom,m3-dump-addr", &addr)) {
+				ath11k_dbg(ab, ATH11K_DBG_QMI, "qmi fail to get qcom,m3-dump-addr, ignore m3 dump mem req\n");
+				break;
+			}
+
+			ab->qmi.target_mem[idx].paddr = (phys_addr_t) addr;
+			ab->qmi.target_mem[idx].vaddr = NULL;
 			ab->qmi.target_mem[idx].size = ab->qmi.target_mem[i].size;
 			ab->qmi.target_mem[idx].type = ab->qmi.target_mem[i].type;
 			idx++;
@@ -2188,6 +2204,8 @@ static int ath11k_qmi_request_device_info(struct ath11k_base *ab)
 
 	if (!ab->hw_params.ce_remap)
 		ab->mem_ce = ab->mem;
+
+	ath11k_hif_config_static_window(ab);
 
 	return 0;
 out:
@@ -2301,6 +2319,7 @@ static int ath11k_qmi_load_file_target_mem(struct ath11k_base *ab,
 	struct qmi_wlanfw_bdf_download_resp_msg_v01 resp;
 	struct qmi_txn txn;
 	const u8 *temp = data;
+	u32 addr;
 	void __iomem *bdf_addr = NULL;
 	int ret = 0;
 	u32 remaining = len;
@@ -2312,7 +2331,9 @@ static int ath11k_qmi_load_file_target_mem(struct ath11k_base *ab,
 	memset(&resp, 0, sizeof(resp));
 
 	if (ab->hw_params.fixed_bdf_addr) {
-		bdf_addr = ioremap(ab->hw_params.bdf_addr, ab->hw_params.fw.board_size);
+		if(of_property_read_u32(ab->dev->of_node, "qcom,bdf-addr", &addr))
+			addr = ab->hw_params.bdf_addr;
+		bdf_addr = ioremap(addr, ab->hw_params.fw.board_size);
 		if (!bdf_addr) {
 			ath11k_warn(ab, "qmi ioremap error for bdf_addr\n");
 			ret = -EIO;

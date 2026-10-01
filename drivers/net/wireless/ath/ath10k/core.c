@@ -10,6 +10,7 @@
 #include <linux/module.h>
 #include <linux/firmware.h>
 #include <linux/of.h>
+#include <linux/of_net.h>
 #include <linux/property.h>
 #include <linux/dmi.h>
 #include <linux/ctype.h>
@@ -3451,6 +3452,8 @@ static int ath10k_core_probe_fw(struct ath10k *ar)
 
 	device_get_mac_address(ar->dev, ar->mac_addr);
 
+	of_get_mac_address(ar->dev->of_node, ar->mac_addr);
+
 	ret = ath10k_core_init_firmware_features(ar);
 	if (ret) {
 		ath10k_err(ar, "fatal problem with firmware features: %d\n",
@@ -3578,6 +3581,16 @@ int ath10k_core_register(struct ath10k *ar,
 	ar->bus_param = *bus_params;
 
 	queue_work(ar->workqueue, &ar->register_work);
+
+	/* OpenWrt requires all PHYs to be initialized to create the
+	 * configuration files during bootup. ath10k violates this
+	 * because it delays the creation of the PHY to a not well defined
+	 * point in the future.
+	 *
+	 * Forcing the work to be done immediately works around this problem
+	 * but may also delay the boot when firmware images cannot be found.
+	 */
+	flush_workqueue(ar->workqueue);
 
 	return 0;
 }

@@ -70,7 +70,7 @@ MODULE_FIRMWARE(MT7628_FIRMWARE_E1);
 MODULE_FIRMWARE(MT7628_FIRMWARE_E2);
 
 #if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_mt76_wmac_remove(struct platform_device *pdev) {
+static int bp_mt76_wmac_remove(struct platform_device *pdev){
 	mt76_wmac_remove(pdev);
 
 	return 0;

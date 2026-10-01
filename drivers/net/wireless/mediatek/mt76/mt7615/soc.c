@@ -58,7 +58,7 @@ static const struct of_device_id mt7622_wmac_of_match[] = {
 };
 
 #if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_mt7622_wmac_remove(struct platform_device *pdev) {
+static int bp_mt7622_wmac_remove(struct platform_device *pdev){
 	mt7622_wmac_remove(pdev);
 
 	return 0;

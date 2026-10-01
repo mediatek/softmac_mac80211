@@ -153,68 +153,93 @@ int cfg80211_dev_rename(struct cfg80211_registered_device *rdev,
 	return 0;
 }
 
+static int cfg80211_switch_wdev_netns(struct wireless_dev *wdev,
+				      struct net *net)
+{
+	int err;
+
+	if (!wdev->netdev)
+		return 0;
+
+	wdev->netdev->netns_immutable = false;
+	err = dev_change_net_namespace(wdev->netdev, net, "wlan%d");
+	wdev->netdev->netns_immutable = true;
+
+	return err;
+}
+
+static int __cfg80211_switch_netns(struct cfg80211_registered_device *rdev,
+				   struct net *net, bool force)
+{
+	struct net *old_net = wiphy_net(&rdev->wiphy);
+	struct wireless_dev *wdev, *tmp;
+	int err = 0;
+
+	list_for_each_entry_safe(wdev, tmp, &rdev->wiphy.wdev_list, list) {
+		err = cfg80211_switch_wdev_netns(wdev, net);
+		if (!err)
+			continue;
+		if (!force)
+			goto undo;
+		/* remove interfaces that fail to allow wiphy switching */
+		dev_close(wdev->netdev);
+		scoped_guard(wiphy, &rdev->wiphy)
+			cfg80211_unregister_wdev(wdev);
+		err = 0;
+	}
+
+	scoped_guard(wiphy, &rdev->wiphy) {
+		list_for_each_entry(wdev, &rdev->wiphy.wdev_list, list) {
+			if (!wdev->netdev)
+				continue;
+			nl80211_notify_iface(rdev, wdev,
+					     NL80211_CMD_DEL_INTERFACE);
+		}
+
+		nl80211_notify_wiphy(rdev, NL80211_CMD_DEL_WIPHY);
+
+		wiphy_net_set(&rdev->wiphy, net);
+
+		/* this only fails on allocation failure */
+		err = device_rename(&rdev->wiphy.dev,
+				    dev_name(&rdev->wiphy.dev));
+		if (err && !force)
+			wiphy_net_set(&rdev->wiphy, old_net);
+
+		nl80211_notify_wiphy(rdev, NL80211_CMD_NEW_WIPHY);
+
+		list_for_each_entry(wdev, &rdev->wiphy.wdev_list, list) {
+			if (!wdev->netdev)
+				continue;
+			nl80211_notify_iface(rdev, wdev,
+					     NL80211_CMD_NEW_INTERFACE);
+		}
+	}
+
+	if (!err || force)
+		return err;
+
+	/* set to the last one to undo all of them */
+	wdev = list_entry(&rdev->wiphy.wdev_list, typeof(*wdev), list);
+undo:
+	/*
+	 * Move back everything, if this fails again (allocation failures)
+	 * then things get stuck in different network namespaces.
+	 */
+	list_for_each_entry_continue_reverse(wdev, &rdev->wiphy.wdev_list,
+					     list)
+		WARN_ON(cfg80211_switch_wdev_netns(wdev, old_net));
+
+	return err;
+}
+
 int cfg80211_switch_netns(struct cfg80211_registered_device *rdev,
 			  struct net *net)
 {
-	struct wireless_dev *wdev;
-	int err = 0;
-
 	if (!(rdev->wiphy.flags & WIPHY_FLAG_NETNS_OK))
 		return -EOPNOTSUPP;
 
-	list_for_each_entry(wdev, &rdev->wiphy.wdev_list, list) {
-		if (!wdev->netdev)
-			continue;
-		wdev->netdev->netns_immutable = false;
-		err = dev_change_net_namespace(wdev->netdev, net, "wlan%d");
-		if (err)
-			break;
-		wdev->netdev->netns_immutable = true;
-	}
-
-	if (err) {
-		/* failed -- clean up to old netns */
-		net = wiphy_net(&rdev->wiphy);
-
-		list_for_each_entry_continue_reverse(wdev,
-						     &rdev->wiphy.wdev_list,
-						     list) {
-			if (!wdev->netdev)
-				continue;
-			wdev->netdev->netns_immutable = false;
-			err = dev_change_net_namespace(wdev->netdev, net,
-							"wlan%d");
-			WARN_ON(err);
-			wdev->netdev->netns_immutable = true;
-		}
-
-		return err;
-	}
-
-	guard(wiphy)(&rdev->wiphy);
-
-	list_for_each_entry(wdev, &rdev->wiphy.wdev_list, list) {
-		if (!wdev->netdev)
-			continue;
-		nl80211_notify_iface(rdev, wdev, NL80211_CMD_DEL_INTERFACE);
-	}
-
-	nl80211_notify_wiphy(rdev, NL80211_CMD_DEL_WIPHY);
-
-	wiphy_net_set(&rdev->wiphy, net);
-
-	err = device_rename(&rdev->wiphy.dev, dev_name(&rdev->wiphy.dev));
-	WARN_ON(err);
-
-	nl80211_notify_wiphy(rdev, NL80211_CMD_NEW_WIPHY);
-
-	list_for_each_entry(wdev, &rdev->wiphy.wdev_list, list) {
-		if (!wdev->netdev)
-			continue;
-		nl80211_notify_iface(rdev, wdev, NL80211_CMD_NEW_INTERFACE);
-	}
-
-	return 0;
+	return __cfg80211_switch_netns(rdev, net, false);
 }
 
 static void cfg80211_rfkill_poll(struct rfkill *rfkill, void *data)
@@ -237,15 +262,15 @@ void cfg80211_stop_p2p_device(struct cfg80211_registered_device *rdev,
 	if (!wdev_running(wdev))
 		return;
 
+	cfg80211_pmsr_wdev_down(wdev);
 	rdev_stop_p2p_device(rdev, wdev);
 	wdev->is_running = false;
 
 	rdev->opencount--;
 
 	if (rdev->scan_req && rdev->scan_req->req.wdev == wdev) {
-		if (WARN_ON(!rdev->scan_req->notified &&
-			    (!rdev->int_scan_req ||
-			     !rdev->int_scan_req->notified)))
+		if (!rdev->scan_req->notified &&
+		    (!rdev->int_scan_req || !rdev->int_scan_req->notified))
 			rdev->scan_req->info.aborted = true;
 		___cfg80211_scan_done(rdev, false);
 	}
@@ -263,6 +288,8 @@ void cfg80211_stop_nan(struct cfg80211_registered_device *rdev,
 
 	if (!wdev_running(wdev))
 		return;
+
+	cfg80211_pmsr_wdev_down(wdev);
 
 	/*
 	 * If there is a scheduled update pending, mark it as canceled, so the
@@ -285,6 +312,8 @@ int cfg80211_nan_set_local_schedule(struct cfg80211_registered_device *rdev,
 				    struct wireless_dev *wdev,
 				    struct cfg80211_nan_local_sched *sched)
 {
+	struct cfg80211_chan_def *chandefs = NULL, *old_chandefs;
+	u8 old_n_channels;
 	int ret;
 
 	lockdep_assert_held(&rdev->wiphy.mtx);
@@ -295,31 +324,79 @@ int cfg80211_nan_set_local_schedule(struct cfg80211_registered_device *rdev,
 	if (wdev->u.nan.sched_update_pending)
 		return -EBUSY;
 
-	ret = rdev_nan_set_local_sched(rdev, wdev, sched);
-	if (ret)
-		return ret;
+	/*
+	 * Pre-allocate chandefs, so we don't ruin the current
+	 * schedule on allocation failure.
+	 */
+	if (sched->n_channels) {
+		chandefs = kcalloc(sched->n_channels, sizeof(*chandefs),
+				   GFP_KERNEL);
+		if (!chandefs)
+			return -ENOMEM;
 
+		for (int i = 0; i < sched->n_channels; i++)
+			chandefs[i] = sched->nan_channels[i].chandef;
+	}
+
+	/*
+	 * Swap in the new chandefs before calling the driver and set the
+	 * deferred flag, so if the driver completes the update synchronously
+	 * the new schedule will be already in place.
+	 */
+	old_chandefs = wdev->u.nan.chandefs;
+	old_n_channels = wdev->u.nan.n_channels;
+	wdev->u.nan.chandefs = chandefs;
+	wdev->u.nan.n_channels = sched->n_channels;
 	wdev->u.nan.sched_update_pending = sched->deferred;
 
-	kfree(wdev->u.nan.chandefs);
-	wdev->u.nan.chandefs = NULL;
-	wdev->u.nan.n_channels = 0;
+	ret = rdev_nan_set_local_sched(rdev, wdev, sched);
+	if (ret) {
+		/* Restore the previous schedule on failure */
+		wdev->u.nan.sched_update_pending = false;
+		wdev->u.nan.chandefs = old_chandefs;
+		wdev->u.nan.n_channels = old_n_channels;
+		kfree(chandefs);
+		return ret;
+	}
 
-	if (!sched->n_channels)
-		return 0;
-
-	wdev->u.nan.chandefs = kcalloc(sched->n_channels,
-				       sizeof(*wdev->u.nan.chandefs),
-				       GFP_KERNEL);
-	if (!wdev->u.nan.chandefs)
-		return -ENOMEM;
-
-	for (int i = 0; i < sched->n_channels; i++)
-		wdev->u.nan.chandefs[i] = sched->nan_channels[i].chandef;
-
-	wdev->u.nan.n_channels = sched->n_channels;
+	kfree(old_chandefs);
 
 	return 0;
+}
+
+int cfg80211_nan_set_non_evac_channels(struct cfg80211_registered_device *rdev,
+				       struct wireless_dev *wdev,
+				       struct cfg80211_nan_non_evac_channels *channels)
+{
+	lockdep_assert_held(&rdev->wiphy.mtx);
+
+	if (wdev->iftype != NL80211_IFTYPE_NAN || !wdev_running(wdev))
+		return -EINVAL;
+
+	/*
+	 * Don't allow updating the non-evacuable channels while a deferred
+	 * schedule update is pending, as the set of channels may still change.
+	 */
+	if (wdev->u.nan.sched_update_pending)
+		return -EBUSY;
+
+	/* All provided channels must belong to the current local schedule. */
+	for (int i = 0; i < channels->n_channels; i++) {
+		bool found = false;
+
+		for (int j = 0; j < wdev->u.nan.n_channels; j++) {
+			if (cfg80211_chandef_identical(&wdev->u.nan.chandefs[j],
+						       &channels->chandefs[i])) {
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+			return -ENOENT;
+	}
+
+	return rdev_nan_set_non_evac_channels(rdev, wdev, channels);
 }
 
 void cfg80211_stop_pd(struct cfg80211_registered_device *rdev,
@@ -639,6 +716,8 @@ use_default_name:
 	INIT_WORK(&rdev->destroy_work, cfg80211_destroy_iface_wk);
 	wiphy_work_init(&rdev->sched_scan_stop_wk, cfg80211_sched_scan_stop_wk);
 	INIT_WORK(&rdev->sched_scan_res_wk, cfg80211_sched_scan_results_wk);
+	wiphy_work_init(&rdev->reg_check_chans_wk, reg_leave_invalid_chans_wk);
+	INIT_WORK(&rdev->reg_leave_nan_wk, reg_leave_invalid_nan_wk);
 	INIT_WORK(&rdev->propagate_radar_detect_wk,
 		  cfg80211_propagate_radar_detect_wk);
 	INIT_WORK(&rdev->propagate_cac_done_wk, cfg80211_propagate_cac_done_wk);
@@ -1338,6 +1417,7 @@ void wiphy_unregister(struct wiphy *wiphy)
 	cancel_delayed_work_sync(&rdev->dfs_update_channels_wk);
 	cancel_delayed_work_sync(&rdev->background_cac_done_wk);
 	flush_work(&rdev->destroy_work);
+	flush_work(&rdev->reg_leave_nan_wk);
 	flush_work(&rdev->propagate_radar_detect_wk);
 	flush_work(&rdev->propagate_cac_done_wk);
 	flush_work(&rdev->mgmt_registrations_update_wk);
@@ -1755,9 +1835,9 @@ static int cfg80211_netdev_notifier_call(struct notifier_block *nb,
 		wiphy_lock(&rdev->wiphy);
 		cfg80211_update_iface_num(rdev, wdev->iftype, -1);
 		if (rdev->scan_req && rdev->scan_req->req.wdev == wdev) {
-			if (WARN_ON(!rdev->scan_req->notified &&
-				    (!rdev->int_scan_req ||
-				     !rdev->int_scan_req->notified)))
+			if (!rdev->scan_req->notified &&
+			    (!rdev->int_scan_req ||
+			     !rdev->int_scan_req->notified))
 				rdev->scan_req->info.aborted = true;
 			___cfg80211_scan_done(rdev, false);
 		}
@@ -1865,7 +1945,7 @@ static void __net_exit cfg80211_pernet_exit(struct net *net)
 	rtnl_lock();
 	for_each_rdev(rdev) {
 		if (net_eq(wiphy_net(&rdev->wiphy), net))
-			WARN_ON(cfg80211_switch_netns(rdev, &init_net));
+			WARN_ON(__cfg80211_switch_netns(rdev, &init_net, true));
 	}
 	rtnl_unlock();
 }

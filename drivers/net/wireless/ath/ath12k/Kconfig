@@ -19,7 +19,7 @@ config ATH12K_AHB
 	bool "Qualcomm ath12k AHB support"
 	depends on ATH12K && REMOTEPROC
 	select QCOM_MDT_LOADER
-	depends on QCOM_SCM
+	depends on QCOM_PAS
 	help
 	  Enable support for Ath12k AHB bus chipsets, example IPQ5332.
 

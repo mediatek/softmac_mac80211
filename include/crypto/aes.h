@@ -28,5 +28,63 @@
 #define aes_cmac_update LINUX_BACKPORT(aes_cmac_update)
 #undef aes_cmac_final
 #define aes_cmac_final LINUX_BACKPORT(aes_cmac_final)
+#undef aes_ecb_encrypt
+#define aes_ecb_encrypt LINUX_BACKPORT(aes_ecb_encrypt)
+#undef aes_ecb_decrypt
+#define aes_ecb_decrypt LINUX_BACKPORT(aes_ecb_decrypt)
+#undef aes_cbc_encrypt
+#define aes_cbc_encrypt LINUX_BACKPORT(aes_cbc_encrypt)
+#undef aes_cbc_decrypt
+#define aes_cbc_decrypt LINUX_BACKPORT(aes_cbc_decrypt)
+#undef aes_cbc_cts_encrypt
+#define aes_cbc_cts_encrypt LINUX_BACKPORT(aes_cbc_cts_encrypt)
+#undef aes_cbc_cts_decrypt
+#define aes_cbc_cts_decrypt LINUX_BACKPORT(aes_cbc_cts_decrypt)
+#undef aes_ctr
+#define aes_ctr LINUX_BACKPORT(aes_ctr)
+#undef aes_xctr
+#define aes_xctr LINUX_BACKPORT(aes_xctr)
+#undef aes_xts_preparekey
+#define aes_xts_preparekey LINUX_BACKPORT(aes_xts_preparekey)
+#undef aes_xts_encrypt
+#define aes_xts_encrypt LINUX_BACKPORT(aes_xts_encrypt)
+#undef aes_xts_decrypt
+#define aes_xts_decrypt LINUX_BACKPORT(aes_xts_decrypt)
+#undef aes_gcm_preparekey
+#define aes_gcm_preparekey LINUX_BACKPORT(aes_gcm_preparekey)
+#undef aes_gcm_init
+#define aes_gcm_init LINUX_BACKPORT(aes_gcm_init)
+#undef aes_gcm_auth_update
+#define aes_gcm_auth_update LINUX_BACKPORT(aes_gcm_auth_update)
+#undef aes_gcm_encrypt_update
+#define aes_gcm_encrypt_update LINUX_BACKPORT(aes_gcm_encrypt_update)
+#undef aes_gcm_decrypt_update
+#define aes_gcm_decrypt_update LINUX_BACKPORT(aes_gcm_decrypt_update)
+#undef aes_gcm_encrypt_final
+#define aes_gcm_encrypt_final LINUX_BACKPORT(aes_gcm_encrypt_final)
+#undef aes_gcm_decrypt_final
+#define aes_gcm_decrypt_final LINUX_BACKPORT(aes_gcm_decrypt_final)
+#undef aes_gcm_encrypt
+#define aes_gcm_encrypt LINUX_BACKPORT(aes_gcm_encrypt)
+#undef aes_gcm_decrypt
+#define aes_gcm_decrypt LINUX_BACKPORT(aes_gcm_decrypt)
+#undef aes_ccm_preparekey
+#define aes_ccm_preparekey LINUX_BACKPORT(aes_ccm_preparekey)
+#undef aes_ccm_init
+#define aes_ccm_init LINUX_BACKPORT(aes_ccm_init)
+#undef aes_ccm_auth_update
+#define aes_ccm_auth_update LINUX_BACKPORT(aes_ccm_auth_update)
+#undef aes_ccm_encrypt_update
+#define aes_ccm_encrypt_update LINUX_BACKPORT(aes_ccm_encrypt_update)
+#undef aes_ccm_decrypt_update
+#define aes_ccm_decrypt_update LINUX_BACKPORT(aes_ccm_decrypt_update)
+#undef aes_ccm_encrypt_final
+#define aes_ccm_encrypt_final LINUX_BACKPORT(aes_ccm_encrypt_final)
+#undef aes_ccm_decrypt_final
+#define aes_ccm_decrypt_final LINUX_BACKPORT(aes_ccm_decrypt_final)
+#undef aes_ccm_encrypt
+#define aes_ccm_encrypt LINUX_BACKPORT(aes_ccm_encrypt)
+#undef aes_ccm_decrypt
+#define aes_ccm_decrypt LINUX_BACKPORT(aes_ccm_decrypt)
 #include <crypto/backport-aes.h>
 #endif /* CPTCFG_BPAUTO_BUILD_CRYPTO_LIB_AES_CBC_MACS */

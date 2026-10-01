@@ -123,7 +123,7 @@ static ssize_t bp_wl1271_sysfs_read_fwlog(struct file *filp,
 					  struct kobject *kobj,
 					  struct bin_attribute *bin_attr,
 					  char *buffer, loff_t pos,
-					  size_t count) {
+					  size_t count){
 	return wl1271_sysfs_read_fwlog(filp, kobj,
 				       (const struct bin_attribute *)bin_attr,
 				       buffer, pos, count);

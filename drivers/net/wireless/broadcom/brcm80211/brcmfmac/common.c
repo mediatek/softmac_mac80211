@@ -596,7 +596,7 @@ static void brcmf_common_pd_remove(struct platform_device *pdev)
 }
 
 #if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_brcmf_common_pd_remove(struct platform_device *pdev) {
+static int bp_brcmf_common_pd_remove(struct platform_device *pdev){
 	brcmf_common_pd_remove(pdev);
 
 	return 0;

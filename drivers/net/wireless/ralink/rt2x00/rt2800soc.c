@@ -346,7 +346,7 @@ static const struct of_device_id rt2880_wmac_match[] = {
 MODULE_DEVICE_TABLE(of, rt2880_wmac_match);
 
 #if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_rt2800soc_remove(struct platform_device *pdev) {
+static int bp_rt2800soc_remove(struct platform_device *pdev){
 	rt2800soc_remove(pdev);
 
 	return 0;

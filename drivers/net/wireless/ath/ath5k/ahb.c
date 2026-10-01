@@ -218,7 +218,7 @@ static void ath_ahb_remove(struct platform_device *pdev)
 }
 
 #if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_ath_ahb_remove(struct platform_device *pdev) {
+static int bp_ath_ahb_remove(struct platform_device *pdev){
 	ath_ahb_remove(pdev);
 
 	return 0;

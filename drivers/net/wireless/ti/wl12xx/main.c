@@ -1937,7 +1937,7 @@ static const struct platform_device_id wl12xx_id_table[] = {
 MODULE_DEVICE_TABLE(platform, wl12xx_id_table);
 
 #if LINUX_VERSION_IS_LESS(6,11,0)
-static int bp_wl12xx_remove(struct platform_device *pdev) {
+static int bp_wl12xx_remove(struct platform_device *pdev){
 	wl12xx_remove(pdev);
 
 	return 0;

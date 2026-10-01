@@ -17,6 +17,9 @@ config ATH11K_AHB
 	depends on m
 	depends on ATH11K
 	depends on REMOTEPROC
+	depends on RPMSG
+	select QRTR
+	select QRTR_SMD
 	help
 	  This module adds support for AHB bus
 

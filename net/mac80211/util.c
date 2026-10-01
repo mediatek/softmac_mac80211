@@ -4740,7 +4740,8 @@ int ieee80211_put_uhr_cap(struct sk_buff *skb,
 		ieee80211_get_uhr_iftype_cap_vif(sband, &sdata->vif);
 	int len;
 
-	if (!uhr_cap)
+	/* UHR capability is only advertised by an MLD STA. */
+	if (!uhr_cap || !ieee80211_vif_is_mld(&sdata->vif))
 		return 0;
 
 	len = 2 + 1 + sizeof(struct ieee80211_uhr_cap);

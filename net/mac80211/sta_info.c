@@ -665,6 +665,7 @@ __sta_info_alloc(struct ieee80211_sub_if_data *sdata,
 	spin_lock_init(&sta->ps_lock);
 	INIT_WORK(&sta->drv_deliver_wk, sta_deliver_ps_frames);
 	wiphy_work_init(&sta->ampdu_mlme.work, ieee80211_ba_session_work);
+	sta->ampdu_mlme.dialog_token_allocator = get_random_u32_below(U8_MAX);
 #ifdef CPTCFG_MAC80211_MESH
 	if (ieee80211_vif_is_mesh(&sdata->vif)) {
 		sta->mesh = kzalloc_obj(*sta->mesh, gfp);
@@ -872,8 +873,13 @@ static int sta_info_insert_drv_state(struct ieee80211_local *local,
 		 * Drivers using legacy sta_add/sta_remove callbacks only
 		 * get uploaded set to true after sta_add is called.
 		 */
-		if (!local->ops->sta_add)
+		if (!local->ops->sta_add) {
 			sta->uploaded = true;
+			if (sta->airtime_weight != IEEE80211_DEFAULT_AIRTIME_WEIGHT)
+				drv_sta_set_airtime_weight(local, sdata,
+							   &sta->sta,
+							   sta->airtime_weight);
+		}
 		return 0;
 	}
 
@@ -2601,6 +2607,13 @@ static void sta_stats_decode_rate(struct ieee80211_local *local, u32 rate,
 		int rate_idx = STA_STATS_GET(LEGACY_IDX, rate);
 
 		sband = local->hw.wiphy->bands[band];
+
+		if (!sband) {
+			wiphy_warn(local->hw.wiphy,
+				    "Invalid band %d\n",
+				    band);
+			break;
+		}
 
 		if (WARN_ON_ONCE(!sband->bitrates))
 			break;

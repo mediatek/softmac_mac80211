@@ -7395,6 +7395,8 @@ static int nl80211_start_ap(struct sk_buff *skb, struct genl_info *info)
 	if (err)
 		goto out;
 
+	cfg80211_set_dfs_concurrent(&rdev->wiphy, &params->chandef);
+
 	beacon_check.iftype = wdev->iftype;
 	beacon_check.relax = true;
 	beacon_check.reg_power =
@@ -22756,6 +22758,9 @@ void cfg80211_ch_switch_notify(struct net_device *dev,
 		break;
 	case NL80211_IFTYPE_AP:
 	case NL80211_IFTYPE_P2P_GO:
+		if (wdev->links[link_id].ap.chandef.chan)
+			cfg80211_update_last_available(wdev->wiphy,
+						       &wdev->links[link_id].ap.chandef);
 		wdev->links[link_id].ap.chandef = *chandef;
 		wdev->links[link_id].ap.reg_power =
 			wdev->links[link_id].ap.csa_reg_power;

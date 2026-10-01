@@ -2125,12 +2125,6 @@ static int ieee80211_stop_ap(struct wiphy *wiphy, struct net_device *dev,
 	clear_bit(SDATA_STATE_OFFCHANNEL_BEACON_STOPPED, &sdata->state);
 	ieee80211_link_info_change_notify(sdata, link, changes);
 
-	ieee80211_remove_link_keys(link, &keys);
-	if (!list_empty(&keys)) {
-		synchronize_net();
-		ieee80211_free_key_list(local, &keys);
-	}
-
 	if (sdata->wdev.links[link_id].cac_started) {
 		chandef = link_conf->chanreq.oper;
 		wiphy_hrtimer_work_cancel(wiphy, &link->dfs_cac_timer_work);
@@ -2616,8 +2610,12 @@ static int sta_apply_parameters(struct ieee80211_local *local,
 	if (ieee80211_vif_is_mesh(&sdata->vif))
 		sta_apply_mesh_params(local, sta, params);
 
-	if (params->airtime_weight)
+	if (params->airtime_weight) {
 		sta->airtime_weight = params->airtime_weight;
+		if (sta->uploaded)
+			drv_sta_set_airtime_weight(local, sdata, &sta->sta,
+						   sta->airtime_weight);
+	}
 
 	if (params->nmi_mac) {
 		struct ieee80211_sub_if_data *nmi =
@@ -3550,6 +3548,8 @@ static int ieee80211_scan(struct wiphy *wiphy,
 		 */
 		fallthrough;
 	case NL80211_IFTYPE_AP:
+		/* skip check */
+		break;
 		/*
 		 * If the scan has been forced (and the driver supports
 		 * forcing), don't care about being beaconing already.

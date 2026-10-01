@@ -112,6 +112,8 @@ ieee80211_sta_keep_active(struct sta_info *sta, u8 ac)
 	return time_before_eq(jiffies, sta->airtime[ac].last_active + HZ / 10);
 }
 
+#define AIRTIME_QUANTUM_SHIFT	3
+
 struct ieee80211_bss {
 	u32 device_ts_beacon, device_ts_presp;
 

@@ -1286,7 +1286,8 @@ ieee80211_tx_prepare(struct ieee80211_sub_if_data *sdata,
 			tx->sta = rcu_dereference(sdata->u.vlan.sta);
 			if (!tx->sta && sdata->wdev.use_4addr)
 				return TX_DROP;
-		} else if (tx->sdata->control_port_protocol == tx->skb->protocol) {
+		} else if (tx->sdata->control_port_protocol == tx->skb->protocol ||
+			   ieee80211_is_mgmt(hdr->frame_control)) {
 			tx->sta = sta_info_get_bss(sdata, hdr->addr1);
 		}
 		if (!tx->sta && !is_multicast_ether_addr(hdr->addr1)) {
@@ -4192,7 +4193,7 @@ struct ieee80211_txq *ieee80211_next_txq(struct ieee80211_hw *hw, u8 ac)
 
 		if (ieee80211_sta_deficit(sta, txqi->txq.ac) < 0) {
 			sta->airtime[txqi->txq.ac].deficit +=
-				sta->airtime_weight;
+				sta->airtime_weight << AIRTIME_QUANTUM_SHIFT;
 
 			aql_check = false;
 		}
@@ -4359,7 +4360,8 @@ bool ieee80211_txq_may_transmit(struct ieee80211_hw *hw,
 		}
 		sta = container_of(iter->txq.sta, struct sta_info, sta);
 		if (ieee80211_sta_deficit(sta, ac) < 0)
-			sta->airtime[ac].deficit += sta->airtime_weight;
+			sta->airtime[ac].deficit += sta->airtime_weight <<
+						    AIRTIME_QUANTUM_SHIFT;
 		list_move_tail(&iter->schedule_order, &local->active_txqs[ac]);
 	}
 
@@ -4367,7 +4369,7 @@ bool ieee80211_txq_may_transmit(struct ieee80211_hw *hw,
 	if (sta->airtime[ac].deficit >= 0)
 		goto out;
 
-	sta->airtime[ac].deficit += sta->airtime_weight;
+	sta->airtime[ac].deficit += sta->airtime_weight << AIRTIME_QUANTUM_SHIFT;
 	list_move_tail(&txqi->schedule_order, &local->active_txqs[ac]);
 	spin_unlock_bh(&local->active_txq_lock[ac]);
 

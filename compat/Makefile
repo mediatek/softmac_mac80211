@@ -23,4 +23,4 @@ compat-$(CPTCFG_KERNEL_6_11) += backport-6.11.o
 compat-$(CPTCFG_KERNEL_6_14) += backport-faux.o
 
 compat-$(CPTCFG_BPAUTO_BUILD_CRYPTO_LIB_ARC4) += lib-crypto-arc4.o
-compat-$(CPTCFG_BPAUTO_BUILD_CRYPTO_LIB_AES_CBC_MACS) += lib-crypto-aes.o
+# compat-$(CPTCFG_BPAUTO_BUILD_CRYPTO_LIB_AES_CBC_MACS) += lib-crypto-aes.o

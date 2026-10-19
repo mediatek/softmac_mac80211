@@ -6791,12 +6791,6 @@ ieee80211_determine_our_sta_mode(struct ieee80211_sub_if_data *sdata,
 				 "no UHR support, limiting to EHT\n");
 		goto out;
 	}
-	/* A UHR STA must be affiliated with an MLD. */
-	if (!ieee80211_vif_is_mld(&sdata->vif)) {
-		mlme_link_id_dbg(sdata, link_id,
-				 "non-MLD STA, limiting to EHT\n");
-		goto out;
-	}
 	conn->mode = IEEE80211_CONN_MODE_UHR;
 
 out:

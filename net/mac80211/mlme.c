@@ -6582,7 +6582,7 @@ static void
 ieee80211_determine_our_sta_mode(struct ieee80211_sub_if_data *sdata,
 				 struct ieee80211_supported_band *sband,
 				 struct cfg80211_assoc_request *req,
-				 bool wmm_used, int link_id,
+				 bool wmm_used, int link_id, bool mlo,
 				 struct ieee80211_conn_settings *conn)
 {
 	struct ieee80211_sta_ht_cap sta_ht_cap = sband->ht_cap;
@@ -6785,6 +6785,12 @@ ieee80211_determine_our_sta_mode(struct ieee80211_sub_if_data *sdata,
 		goto out;
 	}
 
+	if (!mlo) {
+		mlme_link_id_dbg(sdata, link_id,
+				 "UHR requires MLO, limiting to EHT\n");
+		goto out;
+	}
+
 	uhr_cap = ieee80211_get_uhr_iftype_cap_vif(sband, &sdata->vif);
 	if (!uhr_cap) {
 		mlme_link_id_dbg(sdata, link_id,
@@ -6809,7 +6815,7 @@ ieee80211_determine_our_sta_mode_auth(struct ieee80211_sub_if_data *sdata,
 {
 	ieee80211_determine_our_sta_mode(sdata, sband, NULL, wmm_used,
 					 req->link_id > 0 ? req->link_id : 0,
-					 conn);
+					 req->link_id >= 0, conn);
 }
 
 static void
@@ -6824,7 +6830,7 @@ ieee80211_determine_our_sta_mode_assoc(struct ieee80211_sub_if_data *sdata,
 	WARN_ON(!req);
 
 	ieee80211_determine_our_sta_mode(sdata, sband, req, wmm_used, link_id,
-					 &tmp);
+					 !!req->ap_mld_addr, &tmp);
 
 	conn->mode = min_t(enum ieee80211_conn_mode,
 			   conn->mode, tmp.mode);
@@ -11740,7 +11746,7 @@ int ieee80211_mgd_assoc_ml_reconf(struct ieee80211_sub_if_data *sdata,
 				local->hw.wiphy->bands[link_cbss->channel->band];
 
 			ieee80211_determine_our_sta_mode(sdata, sband,
-							 NULL, true, link_id,
+							 NULL, true, link_id, true,
 							 &data->link[link_id].conn);
 
 			data->link[link_id].bss = link_cbss;

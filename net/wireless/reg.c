@@ -4219,6 +4219,10 @@ int cfg80211_get_unii(int freq)
 	if (freq > 6875 && freq <= 7125)
 		return 8;
 
+	/* 802.11bn channel candidates */
+	if (freq > 7125 && freq <= 7245)
+		return 9;
+
 	return -EINVAL;
 }
 

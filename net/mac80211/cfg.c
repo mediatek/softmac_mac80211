@@ -1746,8 +1746,10 @@ static int ieee80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
 	if (ieee80211_num_beaconing_links(sdata) <= 1)
 		netif_carrier_on(dev);
 
-	list_for_each_entry(vlan, &sdata->u.ap.vlans, u.vlan.list)
+	list_for_each_entry(vlan, &sdata->u.ap.vlans, u.vlan.list) {
+		ieee80211_set_vif_encap_ops(vlan);
 		netif_carrier_on(vlan->dev);
+	}
 
 	return 0;
 

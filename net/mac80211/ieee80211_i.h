@@ -2132,6 +2132,7 @@ bool __ieee80211_recalc_txpower(struct ieee80211_link_data *link);
 void ieee80211_recalc_txpower(struct ieee80211_link_data *link,
 			      bool update_bss);
 void ieee80211_recalc_offload(struct ieee80211_local *local);
+void ieee80211_set_vif_encap_ops(struct ieee80211_sub_if_data *sdata);
 
 static inline bool ieee80211_sdata_running(struct ieee80211_sub_if_data *sdata)
 {

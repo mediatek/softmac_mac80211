@@ -278,6 +278,8 @@ int ieee80211_emulate_add_chanctx(struct ieee80211_hw *hw,
 {
 	struct ieee80211_local *local = hw_to_local(hw);
 
+	ctx->radar_enabled = cfg80211_chandef_dfs_required(hw->wiphy, &ctx->def,
+							   NL80211_IFTYPE_AP);
 	local->hw.conf.radar_enabled = ctx->radar_enabled;
 
 	return _ieee80211_hw_conf_chan(local, ctx);

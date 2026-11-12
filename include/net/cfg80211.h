@@ -10682,7 +10682,10 @@ cfg80211_s1g_get_primary_sibling(struct wiphy *wiphy,
 }
 
 
-#if LINUX_VERSION_IS_GEQ(6,12,0)
+#if LINUX_VERSION_IS_GEQ(6,12, 114)
+#define backports_set_netns_immutable(_wdev) _wdev->netdev->netns_immutable = true
+#define backports_clear_netns_immutable(_wdev) _wdev->netdev->netns_immutable = false
+#elif LINUX_VERSION_IS_GEQ(6,12,0)
 #define backports_set_netns_immutable(_wdev) _wdev->netdev->netns_local = true
 #define backports_clear_netns_immutable(_wdev) _wdev->netdev->netns_local = false
 #else

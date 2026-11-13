@@ -100,6 +100,7 @@ static u32 ieee80211_calc_hw_conf_chan(struct ieee80211_local *local,
 	struct cfg80211_chan_def chandef = {};
 	struct cfg80211_chan_def *oper = NULL;
 	enum ieee80211_smps_mode smps_mode = IEEE80211_SMPS_STATIC;
+	bool radar_enabled;
 	u32 changed = 0;
 	int power;
 	u32 offchannel_flag;
@@ -151,6 +152,13 @@ static u32 ieee80211_calc_hw_conf_chan(struct ieee80211_local *local,
 	if (offchannel_flag || local->scanning || local->in_reconfig ||
 	    !cfg80211_chandef_identical(&local->hw.conf.chandef, &chandef)) {
 		local->hw.conf.chandef = chandef;
+		changed |= IEEE80211_CONF_CHANGE_CHANNEL;
+	}
+
+	/* radar enabled changed */
+	radar_enabled = ctx ? ctx->radar_enabled : false;
+	if (local->hw.conf.radar_enabled != radar_enabled) {
+		local->hw.conf.radar_enabled = radar_enabled;
 		changed |= IEEE80211_CONF_CHANGE_CHANNEL;
 	}
 
@@ -278,10 +286,6 @@ int ieee80211_emulate_add_chanctx(struct ieee80211_hw *hw,
 {
 	struct ieee80211_local *local = hw_to_local(hw);
 
-	ctx->radar_enabled = cfg80211_chandef_dfs_required(hw->wiphy, &ctx->def,
-							   NL80211_IFTYPE_AP);
-	local->hw.conf.radar_enabled = ctx->radar_enabled;
-
 	return _ieee80211_hw_conf_chan(local, ctx);
 }
 EXPORT_SYMBOL(ieee80211_emulate_add_chanctx);
@@ -290,8 +294,6 @@ void ieee80211_emulate_remove_chanctx(struct ieee80211_hw *hw,
 				      struct ieee80211_chanctx_conf *ctx)
 {
 	struct ieee80211_local *local = hw_to_local(hw);
-
-	local->hw.conf.radar_enabled = false;
 
 	_ieee80211_hw_conf_chan(local, NULL);
 }
@@ -302,8 +304,6 @@ void ieee80211_emulate_change_chanctx(struct ieee80211_hw *hw,
 				      u32 changed)
 {
 	struct ieee80211_local *local = hw_to_local(hw);
-
-	local->hw.conf.radar_enabled = ctx->radar_enabled;
 
 	_ieee80211_hw_conf_chan(local, ctx);
 }
@@ -319,7 +319,6 @@ int ieee80211_emulate_switch_vif_chanctx(struct ieee80211_hw *hw,
 	if (n_vifs <= 0)
 		return -EINVAL;
 
-	local->hw.conf.radar_enabled = vifs[0].new_ctx->radar_enabled;
 	_ieee80211_hw_conf_chan(local, vifs[0].new_ctx);
 
 	return 0;
